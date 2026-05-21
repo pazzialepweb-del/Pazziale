@@ -87,7 +87,7 @@ export default function LoginPage() {
         <p className="text-center text-sm text-gray-400 mt-4">
           ¿No tienes cuenta?{' '}
           <a href="/auth/register" className="text-[#EAA584] hover:underline">
-            Regístrate aquí
+            Regístrate aqui
           </a>
         </p>
       </div>
