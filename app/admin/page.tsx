@@ -3,11 +3,21 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import Navbar from '@/components/Navbar';
+
+interface Producto {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  precio: number;
+  imagen_url: string;
+  categoria: string;
+}
 
 export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [esAdmin, setEsAdmin] = useState(false);
-  const [productos, setProductos] = useState([]);
+  const [productos, setProductos] = useState<Producto[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -51,8 +61,11 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#1A2238] text-white flex items-center justify-center">
-        <p>Verificando permisos...</p>
+      <div className="min-h-screen bg-[#1A2238] text-white">
+        <Navbar />
+        <div className="flex items-center justify-center h-screen">
+          <p>Verificando permisos...</p>
+        </div>
       </div>
     );
   }
@@ -62,26 +75,29 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1A2238] text-white p-8">
-      <h1 className="text-4xl font-serif mb-8">Panel de Administración</h1>
-      
-      <div className="grid md:grid-cols-3 gap-6">
-        <div className="bg-[#131A2A] p-6 rounded-lg border border-gray-700">
-          <h2 className="text-xl font-medium mb-2">Productos</h2>
-          <p className="text-3xl font-serif text-[#EAA584]">{productos.length}</p>
-          <p className="text-gray-400 text-sm">Total de productos</p>
-        </div>
+    <div className="min-h-screen bg-[#1A2238] text-white">
+      <Navbar />
+      <div className="pt-24 px-8">
+        <h1 className="text-4xl font-serif mb-8">Panel de Administración</h1>
         
-        <div className="bg-[#131A2A] p-6 rounded-lg border border-gray-700">
-          <h2 className="text-xl font-medium mb-2">Pedidos</h2>
-          <p className="text-3xl font-serif text-[#EAA584]">0</p>
-          <p className="text-gray-400 text-sm">Pedidos pendientes</p>
-        </div>
-        
-        <div className="bg-[#131A2A] p-6 rounded-lg border border-gray-700">
-          <h2 className="text-xl font-medium mb-2">Usuarios</h2>
-          <p className="text-3xl font-serif text-[#EAA584]">0</p>
-          <p className="text-gray-400 text-sm">Usuarios registrados</p>
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="bg-[#131A2A] p-6 rounded-lg border border-gray-700">
+            <h2 className="text-xl font-medium mb-2">Productos</h2>
+            <p className="text-3xl font-serif text-[#EAA584]">{productos.length}</p>
+            <p className="text-gray-400 text-sm">Total de productos</p>
+          </div>
+          
+          <div className="bg-[#131A2A] p-6 rounded-lg border border-gray-700">
+            <h2 className="text-xl font-medium mb-2">Pedidos</h2>
+            <p className="text-3xl font-serif text-[#EAA584]">0</p>
+            <p className="text-gray-400 text-sm">Pedidos pendientes</p>
+          </div>
+          
+          <div className="bg-[#131A2A] p-6 rounded-lg border border-gray-700">
+            <h2 className="text-xl font-medium mb-2">Usuarios</h2>
+            <p className="text-3xl font-serif text-[#EAA584]">0</p>
+            <p className="text-gray-400 text-sm">Usuarios registrados</p>
+          </div>
         </div>
       </div>
     </div>
