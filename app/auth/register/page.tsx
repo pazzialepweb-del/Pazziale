@@ -10,12 +10,14 @@ export default function RegisterPage() {
   const [nombre, setNombre] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
   const router = useRouter();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess(false);
 
     try {
       // 1. Crear usuario en Supabase Auth
@@ -25,14 +27,14 @@ export default function RegisterPage() {
       });
 
       if (authError) {
-        // Muestra el error real de Supabase
+        // Mostrar el error real de Supabase
         setError(authError.message);
         setLoading(false);
         return;
       }
 
       if (!authData.user) {
-        setError('Error al crear el usuario. Inténtalo de nuevo.');
+        setError('El usuario se creó pero no se pudo obtener la información del usuario.');
         setLoading(false);
         return;
       }
@@ -50,15 +52,18 @@ export default function RegisterPage() {
         ]);
 
       if (perfilError) {
-        // Si falla el perfil, eliminamos el usuario de Auth para evitar cuentas huérfanas
-        await supabase.auth.admin.deleteUser(authData.user.id);
-        setError(`Error al crear el perfil: ${perfilError.message}`);
+        // Si falla la inserción del perfil, mostramos el error pero NO eliminamos el usuario de Auth.
+        // El usuario ya existe y puede iniciar sesión. El perfil se puede agregar manualmente desde el dashboard de Supabase.
+        setError(`El usuario se creó, pero hubo un problema con su perfil: ${perfilError.message}. Por favor, contacta al administrador.`);
         setLoading(false);
         return;
       }
 
-      // 3. Redirigir al login con mensaje de éxito
-      router.push('/auth/login?registered=true');
+      // 3. Éxito
+      setSuccess(true);
+      setTimeout(() => {
+        router.push('/auth/login?registered=true');
+      }, 2000);
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Error inesperado');
     } finally {
@@ -78,7 +83,7 @@ export default function RegisterPage() {
               type="text"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
-              className="w-full p-2 rounded bg-[#1A2238] border border-gray-600 focus:border-[#EAA584] outline-none"
+              className="w-full p-2 rounded bg-[#1A2238] border border-gray-600 focus:border-[#EAA584] outline-none text-white"
               required
             />
           </div>
@@ -88,7 +93,7 @@ export default function RegisterPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-2 rounded bg-[#1A2238] border border-gray-600 focus:border-[#EAA584] outline-none"
+              className="w-full p-2 rounded bg-[#1A2238] border border-gray-600 focus:border-[#EAA584] outline-none text-white"
               required
             />
           </div>
@@ -98,7 +103,7 @@ export default function RegisterPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-2 rounded bg-[#1A2238] border border-gray-600 focus:border-[#EAA584] outline-none"
+              className="w-full p-2 rounded bg-[#1A2238] border border-gray-600 focus:border-[#EAA584] outline-none text-white"
               required
             />
           </div>
@@ -107,9 +112,13 @@ export default function RegisterPage() {
             <p className="text-red-400 text-sm">{error}</p>
           )}
           
+          {success && (
+            <p className="text-green-400 text-sm">¡Usuario creado! Redirigiendo al login...</p>
+          )}
+          
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || success}
             className="w-full bg-[#EAA584] text-[#1A2238] py-2 rounded-lg font-medium hover:bg-white transition-colors disabled:opacity-50"
           >
             {loading ? 'Registrando...' : 'Registrarse'}

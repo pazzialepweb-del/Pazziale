@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { ShoppingCart, Loader2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
@@ -18,6 +17,7 @@ export default function TiendaPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('Todos');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchProductos();
@@ -26,24 +26,25 @@ export default function TiendaPage() {
   async function fetchProductos() {
     try {
       setLoading(true);
-      let query = supabase.from('productos').select('*');
-      
+      setError('');
+
+      // Construir la URL con el filtro de categoría
+      let url = '/api/productos';
       if (categoriaSeleccionada !== 'Todos') {
-        query = query.eq('categoria', categoriaSeleccionada);
+        url += `?categoria=${encodeURIComponent(categoriaSeleccionada)}`;
       }
+
+      const response = await fetch(url);
       
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      // Eliminar duplicados (por si acaso)
-      const productosUnicos = data?.filter((item, index, self) =>
-        index === self.findIndex((t) => t.nombre === item.nombre)
-      ) || [];
-      
-      setProductos(productosUnicos);
+      if (!response.ok) {
+        throw new Error('Error al cargar los productos');
+      }
+
+      const data = await response.json();
+      setProductos(data || []);
     } catch (error) {
       console.error('Error cargando productos:', error);
+      setError(error instanceof Error ? error.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }
@@ -55,17 +56,7 @@ export default function TiendaPage() {
   return (
     <div className="min-h-screen bg-[#1A2238] text-white">
       {/* Navbar */}
-      <nav className="fixed top-0 w-full z-50 bg-[#1A2238]/90 backdrop-blur-sm border-b border-[#EAA584]/20">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <span className="text-3xl font-serif italic tracking-wider text-[#EAA584]">Pazziale</span>
-          </div>
-          <div className="hidden md:flex gap-8 text-sm tracking-wide font-light">
-            <a href="/" className="hover:text-[#EAA584] transition-colors">Inicio</a>
-            <a href="/tienda" className="text-[#EAA584] transition-colors">Tienda</a>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Contenido principal */}
       <section className="pt-32 pb-16 px-6">
@@ -99,6 +90,10 @@ export default function TiendaPage() {
             <div className="flex justify-center items-center h-64">
               <Loader2 className="w-12 h-12 animate-spin text-[#EAA584]" />
             </div>
+          ) : error ? (
+            <div className="text-center text-red-400 py-12">
+              {error}
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
               {productos.map((producto) => (
@@ -124,7 +119,7 @@ export default function TiendaPage() {
             </div>
           )}
           
-          {!loading && productos.length === 0 && (
+          {!loading && !error && productos.length === 0 && (
             <div className="text-center text-gray-400 py-12">
               No hay productos disponibles en esta categoría.
             </div>
