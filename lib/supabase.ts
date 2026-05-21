@@ -1,8 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Conexión directa para diagnóstico
-const supabaseUrl = "https://lcdhazkemkyktfrqjtka.supabase.co";
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjZGhhemtlbWt5a3RmcnFqdGthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMTUxMDQsImV4cCI6MjA5NDc5MTEwNH0.OycQ3gWBDZ5FDcxBMToyV_TsQmN-FkxKjHBl3EBSVJk";
+// Usar variables de entorno (seguro para producción)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+// Validar que las variables existan
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('❌ Faltan las variables de entorno de Supabase. Verifica tu archivo .env.local');
+}
 
 console.log('🔌 Inicializando Supabase con:', {
   url: supabaseUrl,
