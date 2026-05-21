@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -19,16 +18,26 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      // 1. Crear usuario en auth
+      // 1. Crear usuario en Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Error al crear usuario');
+      if (authError) {
+        // Muestra el error real de Supabase
+        setError(authError.message);
+        setLoading(false);
+        return;
+      }
 
-      // 2. Crear perfil en la tabla perfiles
+      if (!authData.user) {
+        setError('Error al crear el usuario. Inténtalo de nuevo.');
+        setLoading(false);
+        return;
+      }
+
+      // 2. Insertar el perfil en la tabla "perfiles"
       const { error: perfilError } = await supabase
         .from('perfiles')
         .insert([
@@ -40,11 +49,18 @@ export default function RegisterPage() {
           }
         ]);
 
-      if (perfilError) throw perfilError;
+      if (perfilError) {
+        // Si falla el perfil, eliminamos el usuario de Auth para evitar cuentas huérfanas
+        await supabase.auth.admin.deleteUser(authData.user.id);
+        setError(`Error al crear el perfil: ${perfilError.message}`);
+        setLoading(false);
+        return;
+      }
 
+      // 3. Redirigir al login con mensaje de éxito
       router.push('/auth/login?registered=true');
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Error al registrarse');
+      setError(error instanceof Error ? error.message : 'Error inesperado');
     } finally {
       setLoading(false);
     }
