@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ShoppingCart, Loader2 } from 'lucide-react';
-import Navbar from '@/app/components/Navbar';
+import Navbar from '@/components/Navbar';
 
 interface Producto {
   id: string;

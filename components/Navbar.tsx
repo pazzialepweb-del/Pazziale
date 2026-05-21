@@ -23,7 +23,6 @@ export default function Navbar() {
       setUser(user);
 
       if (user) {
-        // Verificar si es admin
         const { data: perfil } = await supabase
           .from('perfiles')
           .select('rol')
@@ -52,13 +51,11 @@ export default function Navbar() {
     <nav className="fixed top-0 w-full z-50 bg-[#1A2238]/90 backdrop-blur-sm border-b border-[#EAA584]/20">
       <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
         
-        {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <span className="text-3xl font-serif italic tracking-wider text-[#EAA584]">Pazziale</span>
           <Sparkles className="w-5 h-5 text-[#EAA584]" />
         </Link>
 
-        {/* Navegación Desktop */}
         <div className="hidden md:flex gap-8 text-sm tracking-wide font-light items-center">
           <Link href="/" className={`hover:text-[#EAA584] transition-colors ${isActive('/') ? 'text-[#EAA584]' : 'text-white'}`}>
             Inicio
@@ -74,7 +71,6 @@ export default function Navbar() {
             </Link>
           )}
 
-          {/* Login / Logout */}
           {user ? (
             <div className="flex items-center gap-4">
               <span className="text-gray-400 text-sm flex items-center gap-1">
@@ -96,7 +92,6 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Menú móvil (hamburguesa) - Pendiente de implementar */}
         <div className="md:hidden">
           <button className="text-white">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

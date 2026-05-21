@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import Navbar from '@/components/Navbar';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
