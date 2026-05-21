@@ -5,15 +5,12 @@ import { useRouter } from 'next/navigation';
 import { 
   Mail, 
   Phone, 
-  Star, 
   ArrowRight, 
   Sparkles, 
   Diamond, 
   PenTool, 
   Hammer, 
   Heart,
-  ChevronLeft,
-  ChevronRight
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
@@ -28,31 +25,8 @@ const images = [
   { id: 7, src: "/images/hojas.jpg", alt: "Pendientes Flor Roja Pazziale" },
 ];
 
-// Testimonios simulados
-const testimonios = [
-  {
-    id: 1,
-    nombre: "María González",
-    texto: "Compré un anillo de compromiso y la calidad es excepcional. Se nota el cariño y la dedicación en cada detalle. ¡Un trabajo increíble!",
-    estrellas: 5
-  },
-  {
-    id: 2,
-    nombre: "Carlos Pérez",
-    texto: "Los pendientes de Ginkgo son una obra de arte. La textura y el brillo son impresionantes. Sin duda, volveré a comprar.",
-    estrellas: 5
-  },
-  {
-    id: 3,
-    nombre: "Valentina Ruiz",
-    texto: "Me encanta el concepto de 'joyería hecha a mano'. Cada pieza cuenta una historia. Pazziale es mi nueva tienda favorita.",
-    estrellas: 5
-  }
-];
-
 const HomePage: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [testimonioActual, setTestimonioActual] = useState(0);
   const router = useRouter();
 
   // Auto-slide para el carrusel de imágenes
@@ -63,19 +37,8 @@ const HomePage: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Auto-slide para los testimonios
-  useEffect(() => {
-    const timerTestimonial = setInterval(() => {
-      setTestimonioActual((prev) => (prev + 1) % testimonios.length);
-    }, 6000);
-    return () => clearInterval(timerTestimonial);
-  }, []);
-
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % images.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + images.length) % images.length);
-
-  const siguienteTestimonio = () => setTestimonioActual((prev) => (prev + 1) % testimonios.length);
-  const anteriorTestimonio = () => setTestimonioActual((prev) => (prev - 1 + testimonios.length) % testimonios.length);
 
   return (
     <div className="min-h-screen bg-[#1A2238] text-white font-sans selection:bg-[#EAA584] selection:text-[#1A2238] overflow-x-hidden">
@@ -142,10 +105,10 @@ const HomePage: React.FC = () => {
             
             {/* Controles del carousel más estéticos */}
             <button onClick={prevSlide} className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-[#1A2238]/80 backdrop-blur-sm border border-[#EAA584]/30 rounded-full flex items-center justify-center hover:bg-[#EAA584] hover:text-[#1A2238] transition-all z-10 text-white group-hover:opacity-100 opacity-0">
-              <ChevronLeft className="w-6 h-6" />
+              <span className="text-xl">◀</span>
             </button>
             <button onClick={nextSlide} className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-[#1A2238]/80 backdrop-blur-sm border border-[#EAA584]/30 rounded-full flex items-center justify-center hover:bg-[#EAA584] hover:text-[#1A2238] transition-all z-10 text-white group-hover:opacity-100 opacity-0">
-              <ChevronRight className="w-6 h-6" />
+              <span className="text-xl">▶</span>
             </button>
             
             {/* Indicadores (puntos) */}
@@ -226,38 +189,27 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* --- TESTIMONIAL / VALOR --- */}
-      <section className="py-20 bg-[#131A2A] border-y border-[#EAA584]/10">
-        <div className="max-w-4xl mx-auto px-6 relative">
-          <h2 className="text-3xl font-serif text-center mb-12">Lo que dicen <span className="text-[#EAA584]">nuestros clientes</span></h2>
-          
-          <div className="bg-[#1A2238] p-8 md:p-12 rounded-2xl border border-gray-700 shadow-2xl relative">
-            <div className="flex flex-col md:flex-row items-center gap-8">
-              <div className="w-24 h-24 rounded-full bg-[#EAA584]/20 border border-[#EAA584] flex items-center justify-center shrink-0">
-                <span className="text-4xl text-[#EAA584]">“</span>
-              </div>
-              <div className="flex-1">
-                <div className="flex gap-1 mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-[#EAA584] text-[#EAA584]" />
-                  ))}
-                </div>
-                <p className="text-xl font-light italic text-gray-200 mb-4">
-                  "{testimonios[testimonioActual].texto}"
-                </p>
-                <div className="flex items-center justify-between">
-                  <span className="font-serif text-[#EAA584]">- {testimonios[testimonioActual].nombre}</span>
-                  <div className="flex gap-2">
-                    <button onClick={anteriorTestimonio} className="w-10 h-10 rounded-full border border-gray-600 flex items-center justify-center hover:border-[#EAA584] hover:text-[#EAA584] transition-colors">
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <button onClick={siguienteTestimonio} className="w-10 h-10 rounded-full border border-gray-600 flex items-center justify-center hover:border-[#EAA584] hover:text-[#EAA584] transition-colors">
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+      {/* --- SECCIÓN DE BIENVENIDA (NUEVA) --- */}
+      <section className="py-20 bg-[#1A2238] border-y border-[#EAA584]/10">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <div className="mb-6">
+            <span className="text-4xl text-[#EAA584] opacity-20">✦</span>
+          </div>
+          <h3 className="text-2xl md:text-3xl font-serif italic mb-8 text-[#EAA584] leading-relaxed">
+            "Bienvenido a nuestro universo creativo"
+          </h3>
+          <div className="space-y-4 text-gray-300 text-lg md:text-xl font-light leading-relaxed">
+            <p>
+              Aquí, el fuego, la plata y el cobre se funden para dar vida a piezas únicas que cuentan historias. 
+              No creamos accesorios; <span className="text-white font-medium">esculpimos declaraciones de identidad</span> con metales nobles y detalles que celebran lo auténtico.
+            </p>
+            <p>
+              Cada joya es un manifiesto de <span className="text-[#EAA584]">diseño sutil</span>, elegancia atemporal y fuerza natural. 
+              Pasa, descubre la pieza que fue pensada para ti y lleva contigo una obra de arte hecha a mano.
+            </p>
+          </div>
+          <div className="mt-8">
+            <div className="w-16 h-1 bg-[#EAA584] mx-auto"></div>
           </div>
         </div>
       </section>
@@ -291,7 +243,13 @@ const HomePage: React.FC = () => {
           <div>
             <h5 className="font-medium mb-4 text-[#EAA584]">Sígueme</h5>
             <div className="flex gap-4">
-              
+              {/* Reemplazado por emojis para evitar errores de importación */}
+              <a href="#" className="w-10 h-10 rounded-full border border-gray-600 flex items-center justify-center hover:border-[#EAA584] hover:text-[#EAA584] hover:bg-[#EAA584]/10 transition-all">
+                <span className="text-xl">📸</span>
+              </a>
+              <a href="#" className="w-10 h-10 rounded-full border border-gray-600 flex items-center justify-center hover:border-[#EAA584] hover:text-[#EAA584] hover:bg-[#EAA584]/10 transition-all">
+                <span className="text-xl">👍</span>
+              </a>
             </div>
           </div>
         </div>
