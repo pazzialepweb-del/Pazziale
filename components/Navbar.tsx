@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { User, LogOut, ShoppingBag, Sparkles, Menu, X } from 'lucide-react';
+import { User, LogOut, ShoppingBag, Sparkles, Menu, X, ChevronDown } from 'lucide-react';
+import { useCarrito } from '@/context/CarritoContext';
 
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
@@ -13,6 +14,8 @@ export default function Navbar() {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+
+  const { totalItems } = useCarrito();
 
   useEffect(() => {
     checkUser();
@@ -47,35 +50,76 @@ export default function Navbar() {
     router.push('/');
   };
 
-  const isActive = (path: string) => pathname === path;
-
-  const toggleMenu = () => setMenuAbierto(!menuAbierto);
-
   const cerrarMenu = () => setMenuAbierto(false);
 
+  // Definir las rutas de las categorías
+  const categorias = [
+    { nombre: 'Aros', ruta: '/aros' },
+    { nombre: 'Anillos', ruta: '/anillos' },
+    { nombre: 'Pulseras', ruta: '/pulseras' },
+    { nombre: 'Collares', ruta: '/collares' },
+  ];
+
+  // Verificar si la ruta actual es una categoría o la tienda principal
+  const isTiendaActive = pathname === '/tienda' || categorias.some(cat => pathname === cat.ruta);
+
   return (
-    <nav className="fixed top-0 w-full z-50 bg-[#1A2238]/90 backdrop-blur-sm border-b border-[#EAA584]/20">
+    <nav className="fixed top-0 w-full z-50 bg-[#1E1E1E]/90 backdrop-blur-sm border-b border-[#EC4899]/20">
       <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
         
         {/* LOGO */}
-        <Link href="/" className="flex items-center gap-2" onClick={cerrarMenu}>
-          <span className="text-3xl font-serif italic tracking-wider text-[#EAA584]">Pazziale</span>
-          <Sparkles className="w-5 h-5 text-[#EAA584]" />
+        <Link href="/" className="flex items-center gap-2">
+          <span className="text-3xl font-serif italic tracking-wider text-[#EC4899]">Pazziale</span>
+          <Sparkles className="w-5 h-5 text-[#F59E0B]" />
         </Link>
 
         {/* NAV DESKTOP */}
-        <div className="hidden md:flex gap-8 text-sm tracking-wide font-light items-center">
-          <Link href="/" className={`hover:text-[#EAA584] transition-colors ${isActive('/') ? 'text-[#EAA584]' : 'text-white'}`}>
+        <div className="hidden md:flex gap-6 text-sm tracking-wide font-light items-center">
+          <Link href="/" className={`hover:text-[#EC4899] transition-colors ${pathname === '/' ? 'text-[#EC4899]' : 'text-white'}`}>
             Inicio
           </Link>
           
-          <Link href="/tienda" className={`hover:text-[#EAA584] transition-colors flex items-center gap-1 ${isActive('/tienda') ? 'text-[#EAA584]' : 'text-white'}`}>
+          {/* MENÚ DESPLEGABLE DE TIENDA */}
+          <div className="relative group">
+            <Link 
+              href="/tienda" 
+              className={`flex items-center gap-1 hover:text-[#EC4899] transition-colors ${isTiendaActive ? 'text-[#EC4899]' : 'text-white'}`}
+            >
+              <ShoppingBag className="w-4 h-4" />
+              Tienda
+              <ChevronDown className="w-3 h-3 ml-0.5 group-hover:rotate-180 transition-transform" />
+            </Link>
+
+            {/* Submenú */}
+            <div className="absolute top-full left-0 mt-2 w-48 bg-[#1E1E1E] border border-[#EC4899]/20 rounded-lg shadow-xl invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 z-50 overflow-hidden">
+              <div className="py-2">
+                {categorias.map((categoria) => (
+                  <Link 
+                    key={categoria.ruta} 
+                    href={categoria.ruta}
+                    className="block px-6 py-2.5 text-sm text-gray-300 hover:text-[#EC4899] hover:bg-[#2D2D2D] transition-colors"
+                    onClick={cerrarMenu}
+                  >
+                    {categoria.nombre}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Enlace al Carrito */}
+          <Link href="/carrito" className={`hover:text-[#EC4899] transition-colors flex items-center gap-1 relative ${pathname === '/carrito' ? 'text-[#EC4899]' : 'text-white'}`}>
             <ShoppingBag className="w-4 h-4" />
-            Tienda
+            Carrito
+            {totalItems > 0 && (
+              <span className="absolute -top-2 -right-2 bg-[#EC4899] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold shadow-lg shadow-[#EC4899]/50">
+                {totalItems > 9 ? '9+' : totalItems}
+              </span>
+            )}
           </Link>
 
           {isAdmin && (
-            <Link href="/admin" className={`hover:text-[#EAA584] transition-colors ${isActive('/admin') ? 'text-[#EAA584]' : 'text-white'}`}>
+            <Link href="/admin" className={`hover:text-[#EC4899] transition-colors ${pathname === '/admin' ? 'text-[#EC4899]' : 'text-white'}`}>
               Admin
             </Link>
           )}
@@ -88,14 +132,14 @@ export default function Navbar() {
               </span>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1 hover:text-[#EAA584] transition-colors text-sm"
+                className="flex items-center gap-1 hover:text-[#EC4899] transition-colors text-sm"
               >
                 <LogOut className="w-4 h-4" />
                 Salir
               </button>
             </div>
           ) : (
-            <Link href="/auth/login" className="bg-[#EAA584] text-[#1A2238] px-4 py-1.5 rounded-full font-medium hover:bg-white transition-colors">
+            <Link href="/auth/login" className="bg-[#EC4899] text-white px-4 py-1.5 rounded-full font-medium hover:bg-[#F59E0B] transition-colors">
               Iniciar Sesión
             </Link>
           )}
@@ -103,7 +147,7 @@ export default function Navbar() {
 
         {/* BOTÓN MENÚ MÓVIL */}
         <div className="md:hidden">
-          <button onClick={toggleMenu} className="text-white p-2">
+          <button onClick={() => setMenuAbierto(!menuAbierto)} className="text-white p-2">
             {menuAbierto ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
@@ -111,18 +155,42 @@ export default function Navbar() {
 
       {/* MENÚ MÓVIL (DESPLEGABLE) */}
       {menuAbierto && (
-        <div className="md:hidden bg-[#1A2238] border-t border-[#EAA584]/20 px-6 py-4 flex flex-col gap-4 text-sm">
-          <Link href="/" onClick={cerrarMenu} className={`${isActive('/') ? 'text-[#EAA584]' : 'text-white'} hover:text-[#EAA584] transition-colors`}>
+        <div className="md:hidden bg-[#1E1E1E] border-t border-[#EC4899]/20 px-6 py-4 flex flex-col gap-4 text-sm">
+          <Link href="/" onClick={cerrarMenu} className={`${pathname === '/' ? 'text-[#EC4899]' : 'text-white'} hover:text-[#EC4899] transition-colors`}>
             Inicio
           </Link>
           
-          <Link href="/tienda" onClick={cerrarMenu} className={`flex items-center gap-2 ${isActive('/tienda') ? 'text-[#EAA584]' : 'text-white'} hover:text-[#EAA584] transition-colors`}>
+          <Link href="/tienda" onClick={cerrarMenu} className={`flex items-center gap-2 ${pathname === '/tienda' ? 'text-[#EC4899]' : 'text-white'} hover:text-[#EC4899] transition-colors`}>
             <ShoppingBag className="w-4 h-4" />
             Tienda
           </Link>
 
+          {/* Categorías en móvil */}
+          <div className="pl-6 flex flex-col gap-2 border-l border-[#EC4899]/20">
+            {categorias.map((categoria) => (
+              <Link 
+                key={categoria.ruta} 
+                href={categoria.ruta} 
+                onClick={cerrarMenu}
+                className={`${pathname === categoria.ruta ? 'text-[#EC4899]' : 'text-gray-400'} hover:text-[#EC4899] transition-colors`}
+              >
+                {categoria.nombre}
+              </Link>
+            ))}
+          </div>
+
+          <Link href="/carrito" onClick={cerrarMenu} className={`flex items-center gap-2 relative ${pathname === '/carrito' ? 'text-[#EC4899]' : 'text-white'} hover:text-[#EC4899] transition-colors`}>
+            <ShoppingBag className="w-4 h-4" />
+            Carrito
+            {totalItems > 0 && (
+              <span className="ml-auto bg-[#EC4899] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                {totalItems > 9 ? '9+' : totalItems}
+              </span>
+            )}
+          </Link>
+
           {isAdmin && (
-            <Link href="/admin" onClick={cerrarMenu} className={`${isActive('/admin') ? 'text-[#EAA584]' : 'text-white'} hover:text-[#EAA584] transition-colors`}>
+            <Link href="/admin" onClick={cerrarMenu} className={`${pathname === '/admin' ? 'text-[#EC4899]' : 'text-white'} hover:text-[#EC4899] transition-colors`}>
               Admin
             </Link>
           )}
@@ -135,14 +203,14 @@ export default function Navbar() {
               </span>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1 hover:text-[#EAA584] transition-colors text-left"
+                className="flex items-center gap-1 hover:text-[#EC4899] transition-colors text-left"
               >
                 <LogOut className="w-4 h-4" />
                 Salir
               </button>
             </div>
           ) : (
-            <Link href="/auth/login" onClick={cerrarMenu} className="bg-[#EAA584] text-[#1A2238] px-4 py-1.5 rounded-full font-medium hover:bg-white transition-colors text-center">
+            <Link href="/auth/login" onClick={cerrarMenu} className="bg-[#EC4899] text-white px-4 py-1.5 rounded-full font-medium hover:bg-[#F59E0B] transition-colors text-center">
               Iniciar Sesión
             </Link>
           )}

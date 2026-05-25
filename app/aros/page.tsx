@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { ShoppingCart, Loader2, CheckCircle } from 'lucide-react';
 import Navbar from '@/components/Navbar';
-// ✅ CAMBIO: Importar el contexto local en lugar del de Supabase
 import { useCarrito } from '@/context/CarritoContext';
+import Link from 'next/link';
 
 interface Producto {
   id: string;
@@ -16,29 +16,28 @@ interface Producto {
   stock: number;
 }
 
-export default function TiendaPage() {
+export default function ArosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('Todos');
   const [error, setError] = useState('');
   const [mensajeExito, setMensajeExito] = useState<string | null>(null);
 
-  // Obtener la función para agregar al carrito del contexto local
   const { agregarAlCarrito } = useCarrito();
+
+  // Categoría fija para esta página
+  const CATEGORIA = 'Pendientes';
 
   useEffect(() => {
     fetchProductos();
-  }, [categoriaSeleccionada]);
+  }, []);
 
   async function fetchProductos() {
     try {
       setLoading(true);
       setError('');
 
-      let url = '/api/productos';
-      if (categoriaSeleccionada !== 'Todos') {
-        url += `?categoria=${encodeURIComponent(categoriaSeleccionada)}`;
-      }
+      // Construir la URL con el filtro de categoría fijo
+      let url = `/api/productos?categoria=${encodeURIComponent(CATEGORIA)}`;
 
       const response = await fetch(url);
       
@@ -56,32 +55,23 @@ export default function TiendaPage() {
     }
   }
 
-  // ✅ CAMBIO: Buscar el producto completo y pasarlo al carrito local
   const handleAgregarAlCarrito = (productoId: string, nombreProducto: string) => {
     try {
-      // 1. Buscar el producto completo en la lista actual
       const fullProducto = productos.find(p => p.id === productoId);
-      
       if (fullProducto) {
-        // 2. Pasar el objeto completo al carrito local
         agregarAlCarrito({
           id: fullProducto.id,
           nombre: fullProducto.nombre,
           precio: fullProducto.precio,
           imagen_url: fullProducto.imagen_url
         });
-        
         setMensajeExito(`✅ ${nombreProducto} agregado al carrito`);
         setTimeout(() => setMensajeExito(null), 3000);
-      } else {
-        console.error('Producto no encontrado en la lista');
       }
     } catch (error) {
       console.error('Error al agregar producto:', error);
     }
   };
-
-  const categorias = ['Todos', ...new Set(productos.map(p => p.categoria))];
 
   return (
     <div className="min-h-screen bg-[#1E1E1E] text-white">
@@ -98,26 +88,10 @@ export default function TiendaPage() {
       <section className="pt-32 pb-16 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-serif mb-4 text-white">Nuestra <span className="text-[#EC4899]">Colección</span></h1>
+            <h1 className="text-4xl md:text-5xl font-serif mb-4 text-white">Nuestros <span className="text-[#EC4899]">Aros</span></h1>
             <p className="text-gray-400 max-w-2xl mx-auto font-light">
-              Cada pieza está hecha a mano con dedicación y materiales de la más alta calidad.
+              Descubre nuestra colección de aros artesanales, diseñados para realzar tu estilo con elegancia y sutileza.
             </p>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-4 mb-12">
-            {categorias.map((categoria) => (
-              <button
-                key={categoria}
-                onClick={() => setCategoriaSeleccionada(categoria)}
-                className={`px-6 py-2 rounded-full transition-all ${
-                  categoriaSeleccionada === categoria
-                    ? 'bg-[#EC4899] text-white'
-                    : 'border border-[#F59E0B]/50 text-gray-400 hover:border-[#EC4899] hover:text-[#EC4899]'
-                }`}
-              >
-                {categoria}
-              </button>
-            ))}
           </div>
 
           {loading ? (
@@ -130,50 +104,56 @@ export default function TiendaPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
-              {productos.map((producto) => (
-                <div key={producto.id} className="group bg-[#2D2D2D] p-4 rounded-xl border border-[#F59E0B]/30 hover:border-[#EC4899] transition-all duration-300">
-                  <div className="aspect-square overflow-hidden rounded-lg bg-[#1E1E1E] mb-4 relative">
-                    <img
-                      src={producto.imagen_url}
-                      alt={producto.nombre}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                    {producto.stock === 0 && (
-                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                        <span className="text-red-400 font-medium border border-red-400 px-3 py-1 rounded-full text-sm">Agotado</span>
-                      </div>
-                    )}
-                  </div>
-                  <h3 className="text-lg font-serif mb-1">{producto.nombre}</h3>
-                  <p className="text-gray-400 text-sm font-light mb-2 line-clamp-1">{producto.descripcion}</p>
-                  <div className="flex items-center justify-between mt-2">
-                    <div>
-                      <p className="text-[#F59E0B] font-medium">${producto.precio.toLocaleString()}</p>
-                      <p className="text-xs text-gray-500">Stock: {producto.stock}</p>
+              {productos.length > 0 ? (
+                productos.map((producto) => (
+                  <div key={producto.id} className="group bg-[#2D2D2D] p-4 rounded-xl border border-[#F59E0B]/30 hover:border-[#EC4899] transition-all duration-300">
+                    <div className="aspect-square overflow-hidden rounded-lg bg-[#1E1E1E] mb-4 relative">
+                      <img
+                        src={producto.imagen_url}
+                        alt={producto.nombre}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                      {producto.stock === 0 && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <span className="text-red-400 font-medium border border-red-400 px-3 py-1 rounded-full text-sm">Agotado</span>
+                        </div>
+                      )}
                     </div>
-                    <button
-                      onClick={() => handleAgregarAlCarrito(producto.id, producto.nombre)}
-                      disabled={producto.stock === 0}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-colors text-sm ${
-                        producto.stock === 0
-                          ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                          : 'bg-[#EC4899] text-white hover:bg-[#F59E0B]'
-                      }`}
-                    >
-                      <ShoppingCart className="w-4 h-4" />
-                      {producto.stock === 0 ? 'Sin stock' : 'Agregar'}
-                    </button>
+                    <h3 className="text-lg font-serif mb-1">{producto.nombre}</h3>
+                    <p className="text-gray-400 text-sm font-light mb-2 line-clamp-1">{producto.descripcion}</p>
+                    <div className="flex items-center justify-between mt-2">
+                      <div>
+                        <p className="text-[#F59E0B] font-medium">${producto.precio.toLocaleString()}</p>
+                        <p className="text-xs text-gray-500">Stock: {producto.stock}</p>
+                      </div>
+                      <button
+                        onClick={() => handleAgregarAlCarrito(producto.id, producto.nombre)}
+                        disabled={producto.stock === 0}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-colors text-sm ${
+                          producto.stock === 0
+                            ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                            : 'bg-[#EC4899] text-white hover:bg-[#F59E0B]'
+                        }`}
+                      >
+                        <ShoppingCart className="w-4 h-4" />
+                        {producto.stock === 0 ? 'Sin stock' : 'Agregar'}
+                      </button>
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="col-span-full text-center text-gray-400 py-12">
+                  No hay aros disponibles en este momento. Vuelve pronto para ver nuevos diseños.
                 </div>
-              ))}
+              )}
             </div>
           )}
-          
-          {!loading && !error && productos.length === 0 && (
-            <div className="text-center text-gray-400 py-12">
-              No hay productos disponibles en esta categoría.
-            </div>
-          )}
+
+          <div className="mt-12 text-center">
+            <Link href="/tienda" className="text-[#EC4899] hover:text-[#F59E0B] transition-colors">
+              ← Volver a todas las categorías
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -195,6 +175,7 @@ export default function TiendaPage() {
             <ul className="space-y-2 text-gray-400 text-sm">
               <li><a href="/" className="hover:text-[#EC4899] transition-colors">Inicio</a></li>
               <li><a href="/tienda" className="hover:text-[#EC4899] transition-colors">Tienda</a></li>
+              <li><a href="/aros" className="hover:text-[#EC4899] transition-colors">Aros</a></li>
             </ul>
           </div>
         </div>

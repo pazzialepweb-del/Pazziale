@@ -40,6 +40,14 @@ const HomePage: React.FC = () => {
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % images.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + images.length) % images.length);
 
+  // Definición de categorías para el grid mejorado
+  const categories = [
+    { name: "Aros", href: "/aros", image: images[2].src }, // Usamos la imagen de Pájaros/Colibri como placeholder
+    { name: "Anillos", href: "/anillos", image: images[0].src },
+    { name: "Pulseras", href: "/pulseras", image: images[5].src },
+    { name: "Collares", href: "/collares", image: images[4].src },
+  ];
+
   return (
     <div className="min-h-screen bg-[#1E1E1E] text-white font-sans selection:bg-[#EC4899] selection:text-white overflow-x-hidden">
       
@@ -76,7 +84,7 @@ const HomePage: React.FC = () => {
                 Ver Colección
               </button>
               <button 
-                onClick={() => document.getElementById('process')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => router.push('/taller')}
                 className="px-8 py-3 border border-[#F59E0B]/50 rounded-full hover:border-[#EC4899] hover:text-[#EC4899] transition-all flex items-center gap-2 hover:bg-white/5"
               >
                 Conoce mi taller <ArrowRight className="w-4 h-4 animate-pulse" />
@@ -155,62 +163,42 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* --- NUESTRAS CATEGORÍAS --- */}
+      {/* --- SECCIÓN DE CATEGORÍAS MEJORADA --- */}
       <section id="categories" className="py-20 px-6 bg-[#1E1E1E]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-serif mb-4 text-white">Nuestras <span className="text-[#EC4899]">Categorías</span></h2>
+            <h2 className="text-3xl md:text-5xl font-serif mb-4 text-white">Explora Nuestras <span className="text-[#EC4899]">Categorías</span></h2>
             <div className="w-20 h-1 bg-[#EC4899] mx-auto"></div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Link href="/tienda?categoria=Anillos" className="group relative overflow-hidden rounded-2xl h-64 md:h-80 bg-[#2D2D2D] border border-[#F59E0B]/30 hover:border-[#EC4899] transition-all duration-300">
-              <img 
-                src={images[0].src} 
-                alt="Anillos" 
-                className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-500" 
-              />
-              <div className="absolute inset-0 bg-[#1E1E1E]/70 group-hover:bg-[#1E1E1E]/80 transition-colors"></div>
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                <span className="text-4xl mb-2 text-[#EC4899]">✦</span>
-                <h3 className="text-3xl font-serif">Anillos</h3>
-                <span className="mt-4 border border-[#EC4899] text-[#EC4899] px-6 py-1.5 rounded-full text-sm font-medium hover:bg-[#EC4899] hover:text-white transition-colors">
-                  Ver Colección
-                </span>
-              </div>
-            </Link>
-
-            <Link href="/tienda?categoria=Collares" className="group relative overflow-hidden rounded-2xl h-64 md:h-80 bg-[#2D2D2D] border border-[#F59E0B]/30 hover:border-[#EC4899] transition-all duration-300">
-              <img 
-                src={images[4].src} 
-                alt="Collares" 
-                className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-500" 
-              />
-              <div className="absolute inset-0 bg-[#1E1E1E]/70 group-hover:bg-[#1E1E1E]/80 transition-colors"></div>
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                <span className="text-4xl mb-2 text-[#F59E0B]">✦</span>
-                <h3 className="text-3xl font-serif">Collares</h3>
-                <span className="mt-4 border border-[#EC4899] text-[#EC4899] px-6 py-1.5 rounded-full text-sm font-medium hover:bg-[#EC4899] hover:text-white transition-colors">
-                  Ver Colección
-                </span>
-              </div>
-            </Link>
-
-            <Link href="/tienda?categoria=Pulseras" className="group relative overflow-hidden rounded-2xl h-64 md:h-80 bg-[#2D2D2D] border border-[#F59E0B]/30 hover:border-[#EC4899] transition-all duration-300">
-              <img 
-                src={images[5].src} 
-                alt="Pulseras" 
-                className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-500" 
-              />
-              <div className="absolute inset-0 bg-[#1E1E1E]/70 group-hover:bg-[#1E1E1E]/80 transition-colors"></div>
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                <span className="text-4xl mb-2 text-[#EC4899]">✦</span>
-                <h3 className="text-3xl font-serif">Pulseras</h3>
-                <span className="mt-4 border border-[#EC4899] text-[#EC4899] px-6 py-1.5 rounded-full text-sm font-medium hover:bg-[#EC4899] hover:text-white transition-colors">
-                  Ver Colección
-                </span>
-              </div>
-            </Link>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {categories.map((categoria) => (
+              <Link 
+                key={categoria.name}
+                href={categoria.href} 
+                className="group relative overflow-hidden rounded-2xl h-64 lg:h-80 bg-[#2D2D2D] border border-[#F59E0B]/30 hover:border-[#EC4899] transition-all duration-300"
+              >
+                <div className="absolute inset-0">
+                  <img 
+                    src={categoria.image} 
+                    alt={categoria.name} 
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                  />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#1E1E1E] via-[#1E1E1E]/60 to-transparent group-hover:via-[#1E1E1E]/40 transition-all duration-300"></div>
+                
+                <div className="absolute inset-0 flex flex-col items-center justify-end pb-8 px-4 text-center">
+                  <span className="text-3xl font-serif mb-2 text-white group-hover:text-[#F59E0B] transition-colors">
+                    {categoria.name}
+                  </span>
+                  <div className="opacity-0 transform translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+                    <span className="inline-block border border-[#EC4899] text-[#EC4899] px-4 py-1.5 rounded-full text-xs font-medium hover:bg-[#EC4899] hover:text-white transition-colors">
+                      Ver Colección
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
@@ -263,6 +251,7 @@ const HomePage: React.FC = () => {
             <ul className="space-y-2 text-gray-400 text-sm">
               <li><a href="/" className="hover:text-[#EC4899] transition-colors">Inicio</a></li>
               <li><a href="/tienda" className="hover:text-[#EC4899] transition-colors">Tienda</a></li>
+              <li><a href="/taller" className="hover:text-[#EC4899] transition-colors">El Taller</a></li>
               <li><a href="/admin" className="hover:text-[#EC4899] transition-colors">Panel Admin</a></li>
             </ul>
           </div>

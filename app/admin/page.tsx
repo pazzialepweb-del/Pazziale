@@ -13,6 +13,7 @@ interface Producto {
   precio: number;
   imagen_url: string;
   categoria: string;
+  stock: number;
 }
 
 export default function AdminPage() {
@@ -28,6 +29,7 @@ export default function AdminPage() {
     descripcion: '',
     precio: '',
     categoria: '',
+    stock: '',
     imagen: null as File | null
   });
 
@@ -60,7 +62,6 @@ export default function AdminPage() {
     }
   }
 
-  // --- 🔧 CORRECCIÓN AQUÍ ---
   async function cargarProductos() {
     try {
       const response = await fetch(
@@ -77,14 +78,11 @@ export default function AdminPage() {
       
       const data = await response.json();
       setProductos(data || []);
-      console.log(`✅ Productos cargados: ${data.length}`);
     } catch (error) {
       console.error('Error cargando productos:', error);
       setProductos([]);
     }
   }
-
-  // --- CRUD FUNCTIONS (sin cambios) ---
 
   async function subirImagen(file: File): Promise<string> {
     const nombreArchivo = `${Date.now()}_${file.name}`;
@@ -101,7 +99,7 @@ export default function AdminPage() {
     return urlData.publicUrl;
   }
 
-    async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubiendo(true);
 
@@ -110,7 +108,6 @@ export default function AdminPage() {
         ? productos.find(p => p.id === editandoId)?.imagen_url || '' 
         : '';
 
-      // Si hay una imagen nueva, la subimos
       if (form.imagen) {
         imagen_url = await subirImagen(form.imagen);
       }
@@ -120,18 +117,17 @@ export default function AdminPage() {
         descripcion: form.descripcion,
         precio: parseFloat(form.precio),
         categoria: form.categoria,
-        imagen_url: imagen_url
+        imagen_url: imagen_url,
+        stock: parseInt(form.stock) || 0  // ✅ Agregar stock
       };
 
       if (editandoId) {
-        // Editar producto existente
         const { error } = await supabase
           .from('productos')
           .update(productoData)
           .eq('id', editandoId);
         if (error) throw error;
       } else {
-        // Crear nuevo producto
         const { error } = await supabase
           .from('productos')
           .insert([productoData]);
@@ -141,7 +137,6 @@ export default function AdminPage() {
       await cargarProductos();
       cerrarModal();
     } catch (error) {
-      // 🔥 MEJORA: Muestra el error completo en consola y alert
       console.error('💥 Error completo guardando producto:', error);
       alert('Error al guardar producto: ' + JSON.stringify(error, null, 2));
     } finally {
@@ -183,6 +178,7 @@ export default function AdminPage() {
         descripcion: producto.descripcion,
         precio: producto.precio.toString(),
         categoria: producto.categoria,
+        stock: producto.stock.toString(), // ✅ Cargar stock
         imagen: null
       });
     } else {
@@ -192,6 +188,7 @@ export default function AdminPage() {
         descripcion: '',
         precio: '',
         categoria: '',
+        stock: '',
         imagen: null
       });
     }
@@ -206,25 +203,32 @@ export default function AdminPage() {
       descripcion: '',
       precio: '',
       categoria: '',
+      stock: '',
       imagen: null
     });
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-[#1A2238] text-white"><Navbar /><div className="flex items-center justify-center h-screen"><Loader2 className="w-12 h-12 animate-spin text-[#EAA584]" /></div></div>
+    <div className="min-h-screen bg-[#1E1E1E] text-white">
+      <Navbar />
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="w-12 h-12 animate-spin text-[#EC4899]" />
+      </div>
+    </div>
   );
+  
   if (!esAdmin) return null;
 
   return (
-    <div className="min-h-screen bg-[#1A2238] text-white pb-20">
+    <div className="min-h-screen bg-[#1E1E1E] text-white pb-20">
       <Navbar />
       
       <div className="pt-24 px-4 md:px-8">
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <h1 className="text-4xl font-serif">Panel de Administración</h1>
+          <h1 className="text-4xl font-serif text-white">Panel de Administración</h1>
           <button
             onClick={() => abrirModal()}
-            className="flex items-center gap-2 bg-[#EAA584] text-[#1A2238] px-6 py-2 rounded-full font-medium hover:bg-white transition-all shadow-lg shadow-[#EAA584]/30"
+            className="flex items-center gap-2 bg-[#EC4899] text-white px-6 py-2 rounded-full font-medium hover:bg-[#F59E0B] transition-all shadow-lg shadow-[#EC4899]/30"
           >
             <Plus className="w-5 h-5" /> Agregar Producto
           </button>
@@ -232,49 +236,51 @@ export default function AdminPage() {
         
         {/* Estadísticas */}
         <div className="grid md:grid-cols-3 gap-6 mb-10">
-          <div className="bg-[#131A2A] p-6 rounded-lg border border-gray-700">
-            <h2 className="text-xl font-medium mb-2">Productos</h2>
-            <p className="text-3xl font-serif text-[#EAA584]">{productos.length}</p>
+          <div className="bg-[#2D2D2D] p-6 rounded-lg border border-[#F59E0B]/30">
+            <h2 className="text-xl font-medium mb-2 text-[#F59E0B]">Productos</h2>
+            <p className="text-3xl font-serif text-[#EC4899]">{productos.length}</p>
           </div>
-          <div className="bg-[#131A2A] p-6 rounded-lg border border-gray-700">
-            <h2 className="text-xl font-medium mb-2">Pedidos</h2>
-            <p className="text-3xl font-serif text-[#EAA584]">0</p>
+          <div className="bg-[#2D2D2D] p-6 rounded-lg border border-[#F59E0B]/30">
+            <h2 className="text-xl font-medium mb-2 text-[#F59E0B]">Pedidos</h2>
+            <p className="text-3xl font-serif text-[#EC4899]">0</p>
           </div>
-          <div className="bg-[#131A2A] p-6 rounded-lg border border-gray-700">
-            <h2 className="text-xl font-medium mb-2">Usuarios</h2>
-            <p className="text-3xl font-serif text-[#EAA584]">0</p>
+          <div className="bg-[#2D2D2D] p-6 rounded-lg border border-[#F59E0B]/30">
+            <h2 className="text-xl font-medium mb-2 text-[#F59E0B]">Usuarios</h2>
+            <p className="text-3xl font-serif text-[#EC4899]">0</p>
           </div>
         </div>
 
         {/* LISTA DE PRODUCTOS */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto bg-[#2D2D2D] rounded-lg border border-[#F59E0B]/30">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="border-b border-gray-700 text-left text-sm uppercase tracking-wider text-gray-400">
+              <tr className="border-b border-[#F59E0B]/30 text-left text-sm uppercase tracking-wider text-gray-400">
                 <th className="p-4">Imagen</th>
                 <th className="p-4">Nombre</th>
                 <th className="p-4 hidden md:table-cell">Categoría</th>
                 <th className="p-4">Precio</th>
+                <th className="p-4 hidden md:table-cell">Stock</th>
                 <th className="p-4 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {productos.map((producto) => (
-                <tr key={producto.id} className="border-b border-gray-800 hover:bg-[#131A2A] transition-colors">
+                <tr key={producto.id} className="border-b border-[#F59E0B]/20 hover:bg-[#1E1E1E] transition-colors">
                   <td className="p-4">
                     <img 
                       src={producto.imagen_url} 
                       alt={producto.nombre} 
-                      className="w-12 h-12 rounded-lg object-cover border border-gray-700"
+                      className="w-12 h-12 rounded-lg object-cover border border-[#F59E0B]/30"
                     />
                   </td>
-                  <td className="p-4 font-medium">{producto.nombre}</td>
+                  <td className="p-4 font-medium text-white">{producto.nombre}</td>
                   <td className="p-4 hidden md:table-cell text-gray-400">{producto.categoria}</td>
-                  <td className="p-4 text-[#EAA584]">${producto.precio.toLocaleString()}</td>
+                  <td className="p-4 text-[#EC4899] font-medium">${producto.precio.toLocaleString()}</td>
+                  <td className="p-4 hidden md:table-cell text-[#F59E0B] font-medium">{producto.stock}</td>
                   <td className="p-4 text-right flex justify-end gap-2">
                     <button
                       onClick={() => abrirModal(producto)}
-                      className="p-2 bg-blue-500/20 hover:bg-blue-500/40 rounded-lg transition-colors text-blue-400"
+                      className="p-2 bg-[#EC4899]/20 hover:bg-[#EC4899]/40 rounded-lg transition-colors text-[#EC4899]"
                       title="Editar"
                     >
                       <Edit className="w-4 h-4" />
@@ -297,10 +303,10 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* --- MODAL FORM (sin cambios) --- */}
+      {/* --- MODAL FORM --- */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1A2238] border border-[#EAA584]/20 rounded-2xl max-w-lg w-full p-8 relative shadow-2xl">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1E1E1E] border border-[#EC4899]/30 rounded-2xl max-w-lg w-full p-8 relative shadow-2xl">
             <button
               onClick={cerrarModal}
               className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors"
@@ -308,66 +314,78 @@ export default function AdminPage() {
               <X className="w-6 h-6" />
             </button>
             
-            <h2 className="text-2xl font-serif mb-6">{editandoId ? 'Editar' : 'Agregar'} Producto</h2>
+            <h2 className="text-2xl font-serif mb-6 text-white">{editandoId ? 'Editar' : 'Agregar'} Producto</h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Nombre</label>
+                <label className="block text-sm font-medium mb-1 text-gray-300">Nombre</label>
                 <input
                   type="text"
                   value={form.nombre}
                   onChange={(e) => setForm({...form, nombre: e.target.value})}
-                  className="w-full p-2 rounded bg-[#0F1523] border border-gray-600 focus:border-[#EAA584] outline-none"
+                  className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
                   required
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">Descripción</label>
+                <label className="block text-sm font-medium mb-1 text-gray-300">Descripción</label>
                 <textarea
                   value={form.descripcion}
                   onChange={(e) => setForm({...form, descripcion: e.target.value})}
-                  className="w-full p-2 rounded bg-[#0F1523] border border-gray-600 focus:border-[#EAA584] outline-none min-h-[80px]"
+                  className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white min-h-[80px]"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Precio ($)</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-300">Precio ($)</label>
                   <input
                     type="number"
                     value={form.precio}
                     onChange={(e) => setForm({...form, precio: e.target.value})}
-                    className="w-full p-2 rounded bg-[#0F1523] border border-gray-600 focus:border-[#EAA584] outline-none"
+                    className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Categoría</label>
-                  <select
-                    value={form.categoria}
-                    onChange={(e) => setForm({...form, categoria: e.target.value})}
-                    className="w-full p-2 rounded bg-[#0F1523] border border-gray-600 focus:border-[#EAA584] outline-none"
+                  <label className="block text-sm font-medium mb-1 text-gray-300">Stock</label>
+                  <input
+                    type="number"
+                    value={form.stock}
+                    onChange={(e) => setForm({...form, stock: e.target.value})}
+                    className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
                     required
-                  >
-                    <option value="">Seleccionar</option>
-                    <option value="Anillos">Anillos</option>
-                    <option value="Pendientes">Pendientes</option>
-                    <option value="Collares">Collares</option>
-                    <option value="Pulseras">Pulseras</option>
-                    <option value="Broches">Broches</option>
-                  </select>
+                    min="0"
+                  />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Imagen</label>
+                <label className="block text-sm font-medium mb-1 text-gray-300">Categoría</label>
+                <select
+                  value={form.categoria}
+                  onChange={(e) => setForm({...form, categoria: e.target.value})}
+                  className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
+                  required
+                >
+                  <option value="">Seleccionar</option>
+                  <option value="Anillos">Anillos</option>
+                  <option value="Pendientes">Pendientes</option>
+                  <option value="Collares">Collares</option>
+                  <option value="Pulseras">Pulseras</option>
+                  <option value="Broches">Broches</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-300">Imagen</label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setForm({...form, imagen: e.target.files?.[0] || null})}
-                  className="w-full p-2 rounded bg-[#0F1523] border border-gray-600 focus:border-[#EAA584] outline-none file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:bg-[#EAA584] file:text-[#1A2238] file:font-medium hover:file:bg-white"
+                  className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:bg-[#EC4899] file:text-white file:font-medium hover:file:bg-[#F59E0B]"
                 />
                 {!editandoId && !form.imagen && (
                   <p className="text-xs text-gray-500 mt-1">Selecciona una imagen para el producto.</p>
@@ -380,7 +398,7 @@ export default function AdminPage() {
               <button
                 type="submit"
                 disabled={subiendo}
-                className="w-full bg-[#EAA584] text-[#1A2238] py-3 rounded-lg font-medium hover:bg-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full bg-[#EC4899] text-white py-3 rounded-lg font-medium hover:bg-[#F59E0B] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {subiendo ? (
                   <>
