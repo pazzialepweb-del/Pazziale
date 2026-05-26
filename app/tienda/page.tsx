@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { ShoppingCart, Loader2, CheckCircle } from 'lucide-react';
+import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-// ✅ CAMBIO: Importar el contexto local en lugar del de Supabase
 import { useCarrito } from '@/context/CarritoContext';
 
 interface Producto {
@@ -23,8 +23,10 @@ export default function TiendaPage() {
   const [error, setError] = useState('');
   const [mensajeExito, setMensajeExito] = useState<string | null>(null);
 
-  // Obtener la función para agregar al carrito del contexto local
   const { agregarAlCarrito } = useCarrito();
+
+  // ✅ Definición fija de las categorías en el orden deseado
+  const categorias = ['Todos', 'Aros', 'Anillos', 'Pulseras', 'Collares'];
 
   useEffect(() => {
     fetchProductos();
@@ -36,8 +38,15 @@ export default function TiendaPage() {
       setError('');
 
       let url = '/api/productos';
+      
+      // ✅ Mapeamos el nombre visible al nombre real en la base de datos
       if (categoriaSeleccionada !== 'Todos') {
-        url += `?categoria=${encodeURIComponent(categoriaSeleccionada)}`;
+        let categoriaApi = categoriaSeleccionada;
+        // La categoría 'Aros' corresponde a 'Pendientes' en la base de datos
+        if (categoriaSeleccionada === 'Aros') {
+          categoriaApi = 'Pendientes';
+        }
+        url += `?categoria=${encodeURIComponent(categoriaApi)}`;
       }
 
       const response = await fetch(url);
@@ -56,14 +65,11 @@ export default function TiendaPage() {
     }
   }
 
-  // ✅ CAMBIO: Buscar el producto completo y pasarlo al carrito local
   const handleAgregarAlCarrito = (productoId: string, nombreProducto: string) => {
     try {
-      // 1. Buscar el producto completo en la lista actual
       const fullProducto = productos.find(p => p.id === productoId);
       
       if (fullProducto) {
-        // 2. Pasar el objeto completo al carrito local
         agregarAlCarrito({
           id: fullProducto.id,
           nombre: fullProducto.nombre,
@@ -80,8 +86,6 @@ export default function TiendaPage() {
       console.error('Error al agregar producto:', error);
     }
   };
-
-  const categorias = ['Todos', ...new Set(productos.map(p => p.categoria))];
 
   return (
     <div className="min-h-screen bg-[#1E1E1E] text-white">
@@ -104,6 +108,7 @@ export default function TiendaPage() {
             </p>
           </div>
 
+          {/* Filtros fijos */}
           <div className="flex flex-wrap justify-center gap-4 mb-12">
             {categorias.map((categoria) => (
               <button
@@ -131,7 +136,11 @@ export default function TiendaPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
               {productos.map((producto) => (
-                <div key={producto.id} className="group bg-[#2D2D2D] p-4 rounded-xl border border-[#F59E0B]/30 hover:border-[#EC4899] transition-all duration-300">
+                <Link
+                  key={producto.id}
+                  href={`/producto/${producto.id}`}
+                  className="group bg-[#2D2D2D] p-4 rounded-xl border border-[#F59E0B]/30 hover:border-[#EC4899] transition-all duration-300 block"
+                >
                   <div className="aspect-square overflow-hidden rounded-lg bg-[#1E1E1E] mb-4 relative">
                     <img
                       src={producto.imagen_url}
@@ -152,7 +161,10 @@ export default function TiendaPage() {
                       <p className="text-xs text-gray-500">Stock: {producto.stock}</p>
                     </div>
                     <button
-                      onClick={() => handleAgregarAlCarrito(producto.id, producto.nombre)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleAgregarAlCarrito(producto.id, producto.nombre);
+                      }}
                       disabled={producto.stock === 0}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-colors text-sm ${
                         producto.stock === 0
@@ -164,7 +176,7 @@ export default function TiendaPage() {
                       {producto.stock === 0 ? 'Sin stock' : 'Agregar'}
                     </button>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -195,6 +207,7 @@ export default function TiendaPage() {
             <ul className="space-y-2 text-gray-400 text-sm">
               <li><a href="/" className="hover:text-[#EC4899] transition-colors">Inicio</a></li>
               <li><a href="/tienda" className="hover:text-[#EC4899] transition-colors">Tienda</a></li>
+              <li><a href="/taller" className="hover:text-[#EC4899] transition-colors">El Taller</a></li>
             </ul>
           </div>
         </div>

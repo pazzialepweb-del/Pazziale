@@ -24,7 +24,6 @@ export default function PulserasPage() {
 
   const { agregarAlCarrito } = useCarrito();
 
-  // Categoría fija para esta página
   const CATEGORIA = 'Pulseras';
 
   useEffect(() => {
@@ -76,7 +75,6 @@ export default function PulserasPage() {
     <div className="min-h-screen bg-[#1E1E1E] text-white">
       <Navbar />
 
-      {/* Notificación de éxito flotante */}
       {mensajeExito && (
         <div className="fixed top-24 right-6 z-50 bg-[#2D2D2D] border border-[#F59E0B] text-white px-6 py-3 rounded-lg shadow-2xl animate-fade-in-up flex items-center gap-2">
           <CheckCircle className="w-5 h-5 text-[#EC4899]" />
@@ -105,7 +103,11 @@ export default function PulserasPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
               {productos.length > 0 ? (
                 productos.map((producto) => (
-                  <div key={producto.id} className="group bg-[#2D2D2D] p-4 rounded-xl border border-[#F59E0B]/30 hover:border-[#EC4899] transition-all duration-300">
+                  <Link
+                    key={producto.id}
+                    href={`/producto/${producto.id}`}
+                    className="group bg-[#2D2D2D] p-4 rounded-xl border border-[#F59E0B]/30 hover:border-[#EC4899] transition-all duration-300 block"
+                  >
                     <div className="aspect-square overflow-hidden rounded-lg bg-[#1E1E1E] mb-4 relative">
                       <img
                         src={producto.imagen_url}
@@ -126,7 +128,10 @@ export default function PulserasPage() {
                         <p className="text-xs text-gray-500">Stock: {producto.stock}</p>
                       </div>
                       <button
-                        onClick={() => handleAgregarAlCarrito(producto.id, producto.nombre)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleAgregarAlCarrito(producto.id, producto.nombre);
+                        }}
                         disabled={producto.stock === 0}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-colors text-sm ${
                           producto.stock === 0
@@ -138,7 +143,7 @@ export default function PulserasPage() {
                         {producto.stock === 0 ? 'Sin stock' : 'Agregar'}
                       </button>
                     </div>
-                  </div>
+                  </Link>
                 ))
               ) : (
                 <div className="col-span-full text-center text-gray-400 py-12">
@@ -177,6 +182,7 @@ export default function PulserasPage() {
               <li><a href="/aros" className="hover:text-[#EC4899] transition-colors">Aros</a></li>
               <li><a href="/anillos" className="hover:text-[#EC4899] transition-colors">Anillos</a></li>
               <li><a href="/pulseras" className="hover:text-[#EC4899] transition-colors">Pulseras</a></li>
+              <li><a href="/collares" className="hover:text-[#EC4899] transition-colors">Collares</a></li>
             </ul>
           </div>
         </div>

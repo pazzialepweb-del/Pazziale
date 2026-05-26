@@ -67,10 +67,10 @@ export default function Navbar() {
     <nav className="fixed top-0 w-full z-50 bg-[#1E1E1E]/90 backdrop-blur-sm border-b border-[#EC4899]/20">
       <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
         
-        {/* LOGO */}
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-3xl font-serif italic tracking-wider text-[#EC4899]">Pazziale</span>
-          <Sparkles className="w-5 h-5 text-[#F59E0B]" />
+        {/* LOGO - AGrandado */}
+        <Link href="/" className="flex items-center gap-3">
+          <span className="text-4xl md:text-5xl font-serif italic tracking-wider text-[#EC4899]">Pazziale</span>
+          <Sparkles className="w-7 h-7 md:w-8 md:h-8 text-[#F59E0B]" />
         </Link>
 
         {/* NAV DESKTOP */}
