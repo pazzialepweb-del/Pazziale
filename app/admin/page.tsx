@@ -14,6 +14,7 @@ interface Producto {
   imagen_url: string;
   categoria: string;
   stock: number;
+  dimensiones: string; // ✅ Nuevo campo
 }
 
 export default function AdminPage() {
@@ -30,6 +31,7 @@ export default function AdminPage() {
     precio: '',
     categoria: '',
     stock: '',
+    dimensiones: '', // ✅ Nuevo campo en el formulario
     imagen: null as File | null
   });
 
@@ -118,7 +120,8 @@ export default function AdminPage() {
         precio: parseFloat(form.precio),
         categoria: form.categoria,
         imagen_url: imagen_url,
-        stock: parseInt(form.stock) || 0  // ✅ Agregar stock
+        stock: parseInt(form.stock) || 0,
+        dimensiones: form.dimensiones // ✅ Incluir dimensiones
       };
 
       if (editandoId) {
@@ -178,7 +181,8 @@ export default function AdminPage() {
         descripcion: producto.descripcion,
         precio: producto.precio.toString(),
         categoria: producto.categoria,
-        stock: producto.stock.toString(), // ✅ Cargar stock
+        stock: producto.stock.toString(),
+        dimensiones: producto.dimensiones || '', // ✅ Cargar dimensiones
         imagen: null
       });
     } else {
@@ -189,6 +193,7 @@ export default function AdminPage() {
         precio: '',
         categoria: '',
         stock: '',
+        dimensiones: '',
         imagen: null
       });
     }
@@ -204,6 +209,7 @@ export default function AdminPage() {
       precio: '',
       categoria: '',
       stock: '',
+      dimensiones: '',
       imagen: null
     });
   }
@@ -260,6 +266,7 @@ export default function AdminPage() {
                 <th className="p-4 hidden md:table-cell">Categoría</th>
                 <th className="p-4">Precio</th>
                 <th className="p-4 hidden md:table-cell">Stock</th>
+                <th className="p-4 hidden md:table-cell">Dimensiones</th>
                 <th className="p-4 text-right">Acciones</th>
               </tr>
             </thead>
@@ -277,6 +284,7 @@ export default function AdminPage() {
                   <td className="p-4 hidden md:table-cell text-gray-400">{producto.categoria}</td>
                   <td className="p-4 text-[#EC4899] font-medium">${producto.precio.toLocaleString()}</td>
                   <td className="p-4 hidden md:table-cell text-[#F59E0B] font-medium">{producto.stock}</td>
+                  <td className="p-4 hidden md:table-cell text-gray-400 text-sm truncate max-w-[150px]">{producto.dimensiones}</td>
                   <td className="p-4 text-right flex justify-end gap-2">
                     <button
                       onClick={() => abrirModal(producto)}
@@ -362,21 +370,33 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-300">Categoría</label>
-                <select
-                  value={form.categoria}
-                  onChange={(e) => setForm({...form, categoria: e.target.value})}
-                  className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
-                  required
-                >
-                  <option value="">Seleccionar</option>
-                  <option value="Anillos">Anillos</option>
-                  <option value="Pendientes">Pendientes</option>
-                  <option value="Collares">Collares</option>
-                  <option value="Pulseras">Pulseras</option>
-                  <option value="Broches">Broches</option>
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-300">Categoría</label>
+                  <select
+                    value={form.categoria}
+                    onChange={(e) => setForm({...form, categoria: e.target.value})}
+                    className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
+                    required
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="Anillos">Anillos</option>
+                    <option value="Pendientes">Pendientes</option>
+                    <option value="Collares">Collares</option>
+                    <option value="Pulseras">Pulseras</option>
+                    <option value="Broches">Broches</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-300">Dimensiones</label>
+                  <input
+                    type="text"
+                    value={form.dimensiones}
+                    onChange={(e) => setForm({...form, dimensiones: e.target.value})}
+                    className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
+                    placeholder="Ej: 5cm x 3cm x 1cm, Peso: 2g"
+                  />
+                </div>
               </div>
 
               <div>

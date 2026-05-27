@@ -15,6 +15,7 @@ interface Producto {
   imagen_url: string;
   categoria: string;
   stock: number;
+  dimensiones: string; // ✅ Nuevo campo
 }
 
 export default function ProductoPage() {
@@ -67,7 +68,7 @@ export default function ProductoPage() {
     }
   }
 
-    async function fetchProductosSimilares(productoActual: Producto) {
+  async function fetchProductosSimilares(productoActual: Producto) {
     try {
       const SIMILAR_LIMIT = 4;
       // ✅ TIPADO EXPLÍCITO: Le decimos a TypeScript que será un array de Producto
@@ -216,6 +217,13 @@ export default function ProductoPage() {
               <p className="text-gray-400 leading-relaxed">
                 {producto.descripcion}
               </p>
+              {/* ✅ Mostrar dimensiones si existen */}
+              {producto.dimensiones && (
+                <div className="mt-3">
+                  <span className="text-sm text-gray-400 block">Dimensiones:</span>
+                  <p className="text-gray-300 text-sm">{producto.dimensiones}</p>
+                </div>
+              )}
             </div>
 
             <button

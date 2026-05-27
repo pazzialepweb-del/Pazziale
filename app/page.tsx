@@ -17,13 +17,13 @@ import Navbar from '@/components/Navbar';
 
 // --- CONFIGURACIÓN DE IMÁGENES ---
 const images = [
-  { id: 1, src: "/images/anillo.jpg", alt: "Anillo de Compromiso Pazziale" },
-  { id: 2, src: "/images/mariposa.jpg", alt: "Mariposa Esmaltada Pazziale" },
-  { id: 3, src: "/images/colibri.jpg", alt: "Pájaros Coloridos Pazziale" },
-  { id: 4, src: "/images/corazones.jpg", alt: "Pendientes Corazón Pazziale" },
-  { id: 5, src: "/images/corazones 2.jpg", alt: "Pendientes Abstractos Pazziale" },
-  { id: 6, src: "/images/corazones3.jpg", alt: "Pendientes Ginkgo Pazziale" },
-  { id: 7, src: "/images/hojas.jpg", alt: "Pendientes Flor Roja Pazziale" },
+  { id: 1, src: "/images/carrusel(1).jpg", alt: "Anillo de Compromiso Pazziale" },
+  { id: 2, src: "/images/carrusel(2).jpg", alt: "Mariposa Esmaltada Pazziale" },
+  { id: 3, src: "/images/carrusel(3).jpg", alt: "Pájaros Coloridos Pazziale" },
+  { id: 4, src: "/images/carrusel(4).jpg", alt: "Pendientes Corazón Pazziale" },
+  { id: 5, src: "/images/carrusel(5).jpg", alt: "Pendientes Abstractos Pazziale" },
+  { id: 6, src: "/images/carrusel(6).jpg", alt: "Pendientes Ginkgo Pazziale" },
+  { id: 7, src: "/images/carrusel(7).jpg", alt: "Pendientes Flor Roja Pazziale" },
 ];
 
 const HomePage: React.FC = () => {
