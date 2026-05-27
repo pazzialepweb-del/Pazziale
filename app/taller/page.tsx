@@ -31,7 +31,7 @@ export default function TallerPage() {
         </div>
       </section>
 
-      {/* Sección: Nuestra Historia */}
+      {/* Sección: Nuestra Historia - Sin sombra */}
       <section className="py-20 bg-[#2D2D2D]">
         <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
           <div>
@@ -58,7 +58,7 @@ export default function TallerPage() {
               alt="Taller Pazziale" 
               className="w-full h-full object-contain"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#1E1E1E] via-transparent to-transparent"></div>
+            {/* ✅ ELIMINADA LA LÍNEA DE SOMBRA GRADIENTE */}
           </div>
         </div>
       </section>

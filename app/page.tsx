@@ -91,7 +91,7 @@ const HomePage: React.FC = () => {
             </div>
           </div>
 
-          {/* CAROUSEL DE IMÁGENES MEJORADO CON NEXT/IMAGE */}
+          {/* CAROUSEL DE IMÁGENES - Sin sombras */}
           <div className="relative w-full h-[400px] md:h-[550px] rounded-2xl overflow-hidden shadow-2xl border border-[#F59E0B]/30 group">
             {images.map((img, index) => (
               <div
@@ -100,8 +100,6 @@ const HomePage: React.FC = () => {
                   index === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
                 }`}
               >
-                {/* ✅ CAMBIAMOS object-cover POR object-contain para evitar el zoom excesivo */}
-                {/* También añadimos bg-[#1E1E1E] al contenedor padre para que los bordes se fusionen */}
                 <Image
                   src={img.src}
                   alt={img.alt}
@@ -109,7 +107,7 @@ const HomePage: React.FC = () => {
                   className="w-full h-full object-contain"
                   priority={index === 0}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1E1E1E] via-transparent to-transparent"></div>
+                {/* ✅ ELIMINADA LA LÍNEA DE SOMBRA GRADIENTE */}
               </div>
             ))}
             
