@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image'; // ✅ Importamos el componente Image
 import { 
   Mail, 
   Phone, 
@@ -15,15 +16,15 @@ import {
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
-// --- CONFIGURACIÓN DE IMÁGENES ---
+// --- CONFIGURACIÓN DE IMÁGENES (Nombres de archivo actualizados) ---
 const images = [
-  { id: 1, src: "/images/carrusel(1).jpg", alt: "Anillo de Compromiso Pazziale" },
-  { id: 2, src: "/images/carrusel(2).jpg", alt: "Mariposa Esmaltada Pazziale" },
-  { id: 3, src: "/images/carrusel(3).jpg", alt: "Pájaros Coloridos Pazziale" },
-  { id: 4, src: "/images/carrusel(4).jpg", alt: "Pendientes Corazón Pazziale" },
-  { id: 5, src: "/images/carrusel(5).jpg", alt: "Pendientes Abstractos Pazziale" },
-  { id: 6, src: "/images/carrusel(6).jpg", alt: "Pendientes Ginkgo Pazziale" },
-  { id: 7, src: "/images/carrusel(7).jpg", alt: "Pendientes Flor Roja Pazziale" },
+  { id: 1, src: "/images/carrusel1.jpg", alt: "Anillo de Compromiso Pazziale" },
+  { id: 2, src: "/images/carrusel2.jpg", alt: "Mariposa Esmaltada Pazziale" },
+  { id: 3, src: "/images/carrusel3.jpg", alt: "Pájaros Coloridos Pazziale" },
+  { id: 4, src: "/images/carrusel4.jpg", alt: "Pendientes Corazón Pazziale" },
+  { id: 5, src: "/images/carrusel5.jpg", alt: "Pendientes Abstractos Pazziale" },
+  { id: 6, src: "/images/carrusel6.jpg", alt: "Pendientes Ginkgo Pazziale" },
+  { id: 7, src: "/images/carrusel7.jpg", alt: "Pendientes Flor Roja Pazziale" },
 ];
 
 const HomePage: React.FC = () => {
@@ -40,12 +41,12 @@ const HomePage: React.FC = () => {
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % images.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + images.length) % images.length);
 
-  // Definición de categorías para el grid mejorado
+  // ✅ Definición de categorías usando las imágenes dedicadas que guardaste
   const categories = [
-    { name: "Aros", href: "/aros", image: images[2].src }, // Usamos la imagen de Pájaros/Colibri como placeholder
-    { name: "Anillos", href: "/anillos", image: images[0].src },
-    { name: "Pulseras", href: "/pulseras", image: images[5].src },
-    { name: "Collares", href: "/collares", image: images[4].src },
+    { name: "Aros", href: "/aros", image: "/images/aros.jpg" },
+    { name: "Anillos", href: "/anillos", image: "/images/anillos.jpg" },
+    { name: "Pulseras", href: "/pulseras", image: "/images/pulseras.jpg" },
+    { name: "Collares", href: "/collares", image: "/images/collares.jpg" },
   ];
 
   return (
@@ -92,6 +93,7 @@ const HomePage: React.FC = () => {
             </div>
           </div>
 
+          {/* CAROUSEL DE IMÁGENES MEJORADO CON NEXT/IMAGE */}
           <div className="relative w-full h-[400px] md:h-[550px] rounded-2xl overflow-hidden shadow-2xl border border-[#F59E0B]/30 group">
             {images.map((img, index) => (
               <div
@@ -100,7 +102,14 @@ const HomePage: React.FC = () => {
                   index === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
                 }`}
               >
-                <img src={img.src} alt={img.alt} className="w-full h-full object-cover" />
+                {/* Usamos Image de Next.js para mayor robustez y rendimiento */}
+                <Image
+                  src={img.src}
+                  alt={img.alt}
+                  fill
+                  className="w-full h-full object-cover"
+                  priority={index === 0}
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#1E1E1E] via-transparent to-transparent"></div>
               </div>
             ))}
@@ -179,9 +188,10 @@ const HomePage: React.FC = () => {
                 className="group relative overflow-hidden rounded-2xl h-64 lg:h-80 bg-[#2D2D2D] border border-[#F59E0B]/30 hover:border-[#EC4899] transition-all duration-300"
               >
                 <div className="absolute inset-0">
-                  <img 
+                  <Image 
                     src={categoria.image} 
                     alt={categoria.name} 
+                    fill
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                   />
                 </div>

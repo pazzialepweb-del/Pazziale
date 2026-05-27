@@ -126,6 +126,13 @@ export default function Navbar() {
 
           {user ? (
             <div className="flex items-center gap-4">
+              {/* ✅ NUEVO: Enlace al Perfil */}
+              <Link 
+                href="/perfil" 
+                className={`hover:text-[#EC4899] transition-colors text-sm ${pathname === '/perfil' ? 'text-[#EC4899]' : 'text-white'}`}
+              >
+                Perfil
+              </Link>
               <span className="text-gray-400 text-sm flex items-center gap-1">
                 <User className="w-4 h-4" />
                 {user.email?.split('@')[0]}
@@ -197,6 +204,10 @@ export default function Navbar() {
 
           {user ? (
             <div className="flex flex-col gap-2">
+              {/* ✅ NUEVO: Enlace al Perfil en móvil */}
+              <Link href="/perfil" onClick={cerrarMenu} className={`${pathname === '/perfil' ? 'text-[#EC4899]' : 'text-white'} hover:text-[#EC4899] transition-colors`}>
+                Perfil
+              </Link>
               <span className="text-gray-400 text-sm flex items-center gap-1">
                 <User className="w-4 h-4" />
                 {user.email?.split('@')[0]}

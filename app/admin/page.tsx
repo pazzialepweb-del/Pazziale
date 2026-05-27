@@ -14,25 +14,53 @@ interface Producto {
   imagen_url: string;
   categoria: string;
   stock: number;
-  dimensiones: string; // ✅ Nuevo campo
+  dimensiones: string;
+}
+
+interface Pedido {
+  id: string;
+  user_id: string;
+  nombre_cliente: string;
+  telefono_cliente: string;
+  email_cliente: string;
+  direccion_envio: string;
+  total: number;
+  estado: 'verificando' | 'verificado' | 'en envío' | 'recibido';
+  metodo_envio: string | null;
+  numero_seguimiento: string | null;
+  items: any[];
+  fecha_pedido: string;
+  fecha_actualizacion: string;
 }
 
 export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [esAdmin, setEsAdmin] = useState(false);
   const [productos, setProductos] = useState<Producto[]>([]);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [modalProductoOpen, setModalProductoOpen] = useState(false);
+  const [modalPedidoOpen, setModalPedidoOpen] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [subiendo, setSubiendo] = useState(false);
+  // ✅ NUEVO ESTADO PARA CARGA DE PEDIDOS
+  const [actualizandoPedido, setActualizandoPedido] = useState(false);
   
-  const [form, setForm] = useState({
+  // Formulario de productos
+  const [formProducto, setFormProducto] = useState({
     nombre: '',
     descripcion: '',
     precio: '',
     categoria: '',
     stock: '',
-    dimensiones: '', // ✅ Nuevo campo en el formulario
+    dimensiones: '',
     imagen: null as File | null
+  });
+
+  // Formulario de pedidos
+  const [formPedido, setFormPedido] = useState({
+    estado: 'verificando',
+    metodo_envio: '',
+    numero_seguimiento: ''
   });
 
   const router = useRouter();
@@ -55,7 +83,7 @@ export default function AdminPage() {
       if (perfil?.rol !== 'admin') return router.push('/tienda');
 
       setEsAdmin(true);
-      cargarProductos();
+      cargarDatos();
     } catch (error) {
       console.error('Error verificando admin:', error);
       router.push('/auth/login');
@@ -64,28 +92,33 @@ export default function AdminPage() {
     }
   }
 
-  async function cargarProductos() {
+  // ✅ CARGAR DATOS CON supabase CLIENT (Más seguro y consistente)
+  async function cargarDatos() {
+    // Cargar productos
     try {
-      const response = await fetch(
-        'https://lcdhazkemkyktfrqjtka.supabase.co/rest/v1/productos?select=*',
-        {
-          headers: {
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`
-          }
-        }
-      );
-      
-      if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
-      
-      const data = await response.json();
-      setProductos(data || []);
+      const { data: productosData, error: productosError } = await supabase
+        .from('productos')
+        .select('*');
+      if (productosError) throw productosError;
+      setProductos(productosData || []);
     } catch (error) {
       console.error('Error cargando productos:', error);
-      setProductos([]);
+    }
+
+    // Cargar pedidos
+    try {
+      const { data: pedidosData, error: pedidosError } = await supabase
+        .from('pedidos')
+        .select('*')
+        .order('fecha_pedido', { ascending: false });
+      if (pedidosError) throw pedidosError;
+      setPedidos(pedidosData || []);
+    } catch (error) {
+      console.error('Error cargando pedidos:', error);
     }
   }
 
+  // --- FUNCIONES DE PRODUCTOS (MANTENIDAS) ---
   async function subirImagen(file: File): Promise<string> {
     const nombreArchivo = `${Date.now()}_${file.name}`;
     const { data, error } = await supabase.storage
@@ -101,7 +134,7 @@ export default function AdminPage() {
     return urlData.publicUrl;
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmitProducto(e: React.FormEvent) {
     e.preventDefault();
     setSubiendo(true);
 
@@ -110,18 +143,18 @@ export default function AdminPage() {
         ? productos.find(p => p.id === editandoId)?.imagen_url || '' 
         : '';
 
-      if (form.imagen) {
-        imagen_url = await subirImagen(form.imagen);
+      if (formProducto.imagen) {
+        imagen_url = await subirImagen(formProducto.imagen);
       }
 
       const productoData = {
-        nombre: form.nombre,
-        descripcion: form.descripcion,
-        precio: parseFloat(form.precio),
-        categoria: form.categoria,
+        nombre: formProducto.nombre,
+        descripcion: formProducto.descripcion,
+        precio: parseFloat(formProducto.precio),
+        categoria: formProducto.categoria,
         imagen_url: imagen_url,
-        stock: parseInt(form.stock) || 0,
-        dimensiones: form.dimensiones // ✅ Incluir dimensiones
+        stock: parseInt(formProducto.stock) || 0,
+        dimensiones: formProducto.dimensiones
       };
 
       if (editandoId) {
@@ -137,8 +170,8 @@ export default function AdminPage() {
         if (error) throw error;
       }
 
-      await cargarProductos();
-      cerrarModal();
+      await cargarDatos();
+      cerrarModalProducto();
     } catch (error) {
       console.error('💥 Error completo guardando producto:', error);
       alert('Error al guardar producto: ' + JSON.stringify(error, null, 2));
@@ -147,7 +180,7 @@ export default function AdminPage() {
     }
   }
 
-  async function handleEliminar(id: string) {
+  async function handleEliminarProducto(id: string) {
     if (!confirm('¿Estás seguro de que quieres eliminar este producto?')) return;
 
     try {
@@ -166,28 +199,28 @@ export default function AdminPage() {
         }
       }
 
-      await cargarProductos();
+      await cargarDatos();
     } catch (error) {
       console.error('Error eliminando producto:', error);
       alert('Error al eliminar producto');
     }
   }
 
-  function abrirModal(producto?: Producto) {
+  function abrirModalProducto(producto?: Producto) {
     if (producto) {
       setEditandoId(producto.id);
-      setForm({
+      setFormProducto({
         nombre: producto.nombre,
         descripcion: producto.descripcion,
         precio: producto.precio.toString(),
         categoria: producto.categoria,
         stock: producto.stock.toString(),
-        dimensiones: producto.dimensiones || '', // ✅ Cargar dimensiones
+        dimensiones: producto.dimensiones || '',
         imagen: null
       });
     } else {
       setEditandoId(null);
-      setForm({
+      setFormProducto({
         nombre: '',
         descripcion: '',
         precio: '',
@@ -197,13 +230,13 @@ export default function AdminPage() {
         imagen: null
       });
     }
-    setModalOpen(true);
+    setModalProductoOpen(true);
   }
 
-  function cerrarModal() {
-    setModalOpen(false);
+  function cerrarModalProducto() {
+    setModalProductoOpen(false);
     setEditandoId(null);
-    setForm({
+    setFormProducto({
       nombre: '',
       descripcion: '',
       precio: '',
@@ -213,6 +246,77 @@ export default function AdminPage() {
       imagen: null
     });
   }
+
+  // --- FUNCIONES DE PEDIDOS ---
+
+  function abrirModalPedido(pedido?: Pedido) {
+    if (pedido) {
+      setEditandoId(pedido.id);
+      setFormPedido({
+        estado: pedido.estado,
+        metodo_envio: pedido.metodo_envio || '',
+        numero_seguimiento: pedido.numero_seguimiento || ''
+      });
+    } else {
+      setEditandoId(null);
+      setFormPedido({
+        estado: 'verificando',
+        metodo_envio: '',
+        numero_seguimiento: ''
+      });
+    }
+    setModalPedidoOpen(true);
+  }
+
+  function cerrarModalPedido() {
+    setModalPedidoOpen(false);
+    setEditandoId(null);
+    setFormPedido({
+      estado: 'verificando',
+      metodo_envio: '',
+      numero_seguimiento: ''
+    });
+  }
+
+  // ✅ HANDLE SUBMIT PEDIDOS MEJORADO CON FEEDBACK VISUAL
+  async function handleSubmitPedido(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editandoId) return;
+    setActualizandoPedido(true); // Activar carga
+
+    try {
+      const { error } = await supabase
+        .from('pedidos')
+        .update({
+          estado: formPedido.estado,
+          metodo_envio: formPedido.metodo_envio || null,
+          numero_seguimiento: formPedido.numero_seguimiento || null,
+          fecha_actualizacion: new Date().toISOString()
+        })
+        .eq('id', editandoId);
+
+      if (error) throw error;
+
+      // Recargar datos y cerrar modal
+      await cargarDatos();
+      cerrarModalPedido();
+    } catch (error) {
+      console.error('Error actualizando pedido:', error);
+      alert('Error al actualizar pedido: ' + (error instanceof Error ? error.message : 'Error desconocido'));
+    } finally {
+      setActualizandoPedido(false); // Desactivar carga
+    }
+  }
+
+  const getEstadoColor = (estado: string) => {
+    switch (estado) {
+      case 'verificando': return 'bg-yellow-500/20 text-yellow-400 border-yellow-400';
+      case 'verificado': return 'bg-blue-500/20 text-blue-400 border-blue-400';
+      case 'en envío': return 'bg-[#F59E0B]/20 text-[#F59E0B] border-[#F59E0B]';
+      case 'recibido': return 'bg-green-500/20 text-green-400 border-green-400';
+      default: return 'bg-gray-500/20 text-gray-400 border-gray-400';
+    }
+  };
 
   if (loading) return (
     <div className="min-h-screen bg-[#1E1E1E] text-white">
@@ -233,7 +337,7 @@ export default function AdminPage() {
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
           <h1 className="text-4xl font-serif text-white">Panel de Administración</h1>
           <button
-            onClick={() => abrirModal()}
+            onClick={() => abrirModalProducto()}
             className="flex items-center gap-2 bg-[#EC4899] text-white px-6 py-2 rounded-full font-medium hover:bg-[#F59E0B] transition-all shadow-lg shadow-[#EC4899]/30"
           >
             <Plus className="w-5 h-5" /> Agregar Producto
@@ -241,22 +345,76 @@ export default function AdminPage() {
         </div>
         
         {/* Estadísticas */}
-        <div className="grid md:grid-cols-3 gap-6 mb-10">
+        <div className="grid md:grid-cols-4 gap-6 mb-10">
           <div className="bg-[#2D2D2D] p-6 rounded-lg border border-[#F59E0B]/30">
             <h2 className="text-xl font-medium mb-2 text-[#F59E0B]">Productos</h2>
             <p className="text-3xl font-serif text-[#EC4899]">{productos.length}</p>
           </div>
           <div className="bg-[#2D2D2D] p-6 rounded-lg border border-[#F59E0B]/30">
-            <h2 className="text-xl font-medium mb-2 text-[#F59E0B]">Pedidos</h2>
-            <p className="text-3xl font-serif text-[#EC4899]">0</p>
+            <h2 className="text-xl font-medium mb-2 text-[#F59E0B]">Pedidos Totales</h2>
+            <p className="text-3xl font-serif text-[#EC4899]">{pedidos.length}</p>
           </div>
           <div className="bg-[#2D2D2D] p-6 rounded-lg border border-[#F59E0B]/30">
-            <h2 className="text-xl font-medium mb-2 text-[#F59E0B]">Usuarios</h2>
-            <p className="text-3xl font-serif text-[#EC4899]">0</p>
+            <h2 className="text-xl font-medium mb-2 text-[#F59E0B]">Pendientes</h2>
+            <p className="text-3xl font-serif text-[#EC4899]">{pedidos.filter(p => p.estado === 'verificando').length}</p>
+          </div>
+          <div className="bg-[#2D2D2D] p-6 rounded-lg border border-[#F59E0B]/30">
+            <h2 className="text-xl font-medium mb-2 text-[#F59E0B]">En envío</h2>
+            <p className="text-3xl font-serif text-[#EC4899]">{pedidos.filter(p => p.estado === 'en envío').length}</p>
           </div>
         </div>
 
-        {/* LISTA DE PRODUCTOS */}
+        {/* --- LISTA DE PEDIDOS --- */}
+        <h2 className="text-2xl font-serif mb-4 text-[#EC4899]">Gestión de Pedidos</h2>
+        <div className="overflow-x-auto bg-[#2D2D2D] rounded-lg border border-[#F59E0B]/30 mb-10">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-[#F59E0B]/30 text-left text-sm uppercase tracking-wider text-gray-400">
+                <th className="p-4">ID</th>
+                <th className="p-4">Cliente</th>
+                <th className="p-4">Total</th>
+                <th className="p-4">Dirección</th>
+                <th className="p-4">Estado</th>
+                <th className="p-4">Envío</th>
+                <th className="p-4 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pedidos.map((pedido) => (
+                <tr key={pedido.id} className="border-b border-[#F59E0B]/20 hover:bg-[#1E1E1E] transition-colors">
+                  <td className="p-4 font-mono text-xs text-gray-400">{pedido.id.slice(0, 8)}</td>
+                  <td className="p-4">{pedido.nombre_cliente || 'Sin nombre'}</td>
+                  <td className="p-4 text-[#EC4899] font-medium">${pedido.total.toLocaleString()}</td>
+                  <td className="p-4 text-sm text-gray-400 max-w-[150px] truncate">{pedido.direccion_envio}</td>
+                  <td className="p-4">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getEstadoColor(pedido.estado)}`}>
+                      {pedido.estado}
+                    </span>
+                  </td>
+                  <td className="p-4 text-sm text-gray-400">
+                    {pedido.metodo_envio || '—'}
+                    {pedido.numero_seguimiento && <span className="block text-[#F59E0B] text-xs">{pedido.numero_seguimiento}</span>}
+                  </td>
+                  <td className="p-4 text-right flex justify-end gap-2">
+                    <button
+                      onClick={() => abrirModalPedido(pedido)}
+                      className="p-2 bg-[#EC4899]/20 hover:bg-[#EC4899]/40 rounded-lg transition-colors text-[#EC4899]"
+                      title="Editar pedido"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {pedidos.length === 0 && (
+            <div className="text-center py-12 text-gray-400">No hay pedidos registrados.</div>
+          )}
+        </div>
+
+        {/* --- LISTA DE PRODUCTOS --- */}
+        <h2 className="text-2xl font-serif mb-4 text-[#EC4899]">Gestión de Productos</h2>
         <div className="overflow-x-auto bg-[#2D2D2D] rounded-lg border border-[#F59E0B]/30">
           <table className="w-full border-collapse">
             <thead>
@@ -287,14 +445,14 @@ export default function AdminPage() {
                   <td className="p-4 hidden md:table-cell text-gray-400 text-sm truncate max-w-[150px]">{producto.dimensiones}</td>
                   <td className="p-4 text-right flex justify-end gap-2">
                     <button
-                      onClick={() => abrirModal(producto)}
+                      onClick={() => abrirModalProducto(producto)}
                       className="p-2 bg-[#EC4899]/20 hover:bg-[#EC4899]/40 rounded-lg transition-colors text-[#EC4899]"
                       title="Editar"
                     >
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleEliminar(producto.id)}
+                      onClick={() => handleEliminarProducto(producto.id)}
                       className="p-2 bg-red-500/20 hover:bg-red-500/40 rounded-lg transition-colors text-red-400"
                       title="Eliminar"
                     >
@@ -311,12 +469,12 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* --- MODAL FORM --- */}
-      {modalOpen && (
+      {/* --- MODAL FORM PRODUCTOS --- */}
+      {modalProductoOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#1E1E1E] border border-[#EC4899]/30 rounded-2xl max-w-lg w-full p-8 relative shadow-2xl">
             <button
-              onClick={cerrarModal}
+              onClick={cerrarModalProducto}
               className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors"
             >
               <X className="w-6 h-6" />
@@ -324,13 +482,13 @@ export default function AdminPage() {
             
             <h2 className="text-2xl font-serif mb-6 text-white">{editandoId ? 'Editar' : 'Agregar'} Producto</h2>
             
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmitProducto} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1 text-gray-300">Nombre</label>
                 <input
                   type="text"
-                  value={form.nombre}
-                  onChange={(e) => setForm({...form, nombre: e.target.value})}
+                  value={formProducto.nombre}
+                  onChange={(e) => setFormProducto({...formProducto, nombre: e.target.value})}
                   className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
                   required
                 />
@@ -339,8 +497,8 @@ export default function AdminPage() {
               <div>
                 <label className="block text-sm font-medium mb-1 text-gray-300">Descripción</label>
                 <textarea
-                  value={form.descripcion}
-                  onChange={(e) => setForm({...form, descripcion: e.target.value})}
+                  value={formProducto.descripcion}
+                  onChange={(e) => setFormProducto({...formProducto, descripcion: e.target.value})}
                   className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white min-h-[80px]"
                   required
                 />
@@ -351,8 +509,8 @@ export default function AdminPage() {
                   <label className="block text-sm font-medium mb-1 text-gray-300">Precio ($)</label>
                   <input
                     type="number"
-                    value={form.precio}
-                    onChange={(e) => setForm({...form, precio: e.target.value})}
+                    value={formProducto.precio}
+                    onChange={(e) => setFormProducto({...formProducto, precio: e.target.value})}
                     className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
                     required
                   />
@@ -361,8 +519,8 @@ export default function AdminPage() {
                   <label className="block text-sm font-medium mb-1 text-gray-300">Stock</label>
                   <input
                     type="number"
-                    value={form.stock}
-                    onChange={(e) => setForm({...form, stock: e.target.value})}
+                    value={formProducto.stock}
+                    onChange={(e) => setFormProducto({...formProducto, stock: e.target.value})}
                     className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
                     required
                     min="0"
@@ -374,8 +532,8 @@ export default function AdminPage() {
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-300">Categoría</label>
                   <select
-                    value={form.categoria}
-                    onChange={(e) => setForm({...form, categoria: e.target.value})}
+                    value={formProducto.categoria}
+                    onChange={(e) => setFormProducto({...formProducto, categoria: e.target.value})}
                     className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
                     required
                   >
@@ -391,8 +549,8 @@ export default function AdminPage() {
                   <label className="block text-sm font-medium mb-1 text-gray-300">Dimensiones</label>
                   <input
                     type="text"
-                    value={form.dimensiones}
-                    onChange={(e) => setForm({...form, dimensiones: e.target.value})}
+                    value={formProducto.dimensiones}
+                    onChange={(e) => setFormProducto({...formProducto, dimensiones: e.target.value})}
                     className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
                     placeholder="Ej: 5cm x 3cm x 1cm, Peso: 2g"
                   />
@@ -404,13 +562,13 @@ export default function AdminPage() {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => setForm({...form, imagen: e.target.files?.[0] || null})}
+                  onChange={(e) => setFormProducto({...formProducto, imagen: e.target.files?.[0] || null})}
                   className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:bg-[#EC4899] file:text-white file:font-medium hover:file:bg-[#F59E0B]"
                 />
-                {!editandoId && !form.imagen && (
+                {!editandoId && !formProducto.imagen && (
                   <p className="text-xs text-gray-500 mt-1">Selecciona una imagen para el producto.</p>
                 )}
-                {editandoId && !form.imagen && (
+                {editandoId && !formProducto.imagen && (
                   <p className="text-xs text-gray-500 mt-1">Dejar vacío para mantener la imagen actual.</p>
                 )}
               </div>
@@ -426,6 +584,80 @@ export default function AdminPage() {
                   </>
                 ) : (
                   editandoId ? 'Actualizar Producto' : 'Crear Producto'
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL FORM PEDIDOS --- */}
+      {modalPedidoOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1E1E1E] border border-[#EC4899]/30 rounded-2xl max-w-lg w-full p-8 relative shadow-2xl">
+            <button
+              onClick={cerrarModalPedido}
+              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            
+            <h2 className="text-2xl font-serif mb-6 text-white">Actualizar Pedido</h2>
+            
+            <form onSubmit={handleSubmitPedido} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-300">Estado del pedido</label>
+                <select
+                  value={formPedido.estado}
+                  onChange={(e) => setFormPedido({...formPedido, estado: e.target.value})}
+                  className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
+                  required
+                >
+                  <option value="verificando">Verificando pago</option>
+                  <option value="verificado">Verificado</option>
+                  <option value="en envío">En envío</option>
+                  <option value="recibido">Recibido</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-300">Empresa de envío</label>
+                <select
+                  value={formPedido.metodo_envio}
+                  onChange={(e) => setFormPedido({...formPedido, metodo_envio: e.target.value})}
+                  className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
+                >
+                  <option value="">Seleccionar</option>
+                  <option value="Chilexpress">Chilexpress</option>
+                  <option value="Starken">Starken</option>
+                  <option value="Correos Chile">Correos Chile</option>
+                  <option value="DHL">DHL</option>
+                  <option value="Otro">Otro</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-300">Número de seguimiento</label>
+                <input
+                  type="text"
+                  value={formPedido.numero_seguimiento}
+                  onChange={(e) => setFormPedido({...formPedido, numero_seguimiento: e.target.value})}
+                  className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
+                  placeholder="Ej: CHX123456789"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={actualizandoPedido} // ✅ Deshabilitar mientras carga
+                className="w-full bg-[#EC4899] text-white py-3 rounded-lg font-medium hover:bg-[#F59E0B] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {actualizandoPedido ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" /> Actualizando...
+                  </>
+                ) : (
+                  'Actualizar Pedido'
                 )}
               </button>
             </form>
