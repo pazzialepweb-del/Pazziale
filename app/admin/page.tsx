@@ -42,7 +42,6 @@ export default function AdminPage() {
   const [modalPedidoOpen, setModalPedidoOpen] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [subiendo, setSubiendo] = useState(false);
-  // ✅ NUEVO ESTADO PARA CARGA DE PEDIDOS
   const [actualizandoPedido, setActualizandoPedido] = useState(false);
   
   // Formulario de productos
@@ -92,7 +91,6 @@ export default function AdminPage() {
     }
   }
 
-  // ✅ CARGAR DATOS CON supabase CLIENT (Más seguro y consistente)
   async function cargarDatos() {
     // Cargar productos
     try {
@@ -278,14 +276,14 @@ export default function AdminPage() {
     });
   }
 
-  // ✅ HANDLE SUBMIT PEDIDOS MEJORADO CON FEEDBACK VISUAL
   async function handleSubmitPedido(e: React.FormEvent) {
     e.preventDefault();
     if (!editandoId) return;
-    setActualizandoPedido(true); // Activar carga
+    setActualizandoPedido(true);
 
     try {
-      const { error } = await supabase
+      // ⚠️ CAMBIO IMPORTANTE: AÑADIMOS .select() PARA VERIFICAR CUÁNTAS FILAS SE ACTUALIZARON
+      const { data: updatedData, error } = await supabase
         .from('pedidos')
         .update({
           estado: formPedido.estado,
@@ -293,18 +291,33 @@ export default function AdminPage() {
           numero_seguimiento: formPedido.numero_seguimiento || null,
           fecha_actualizacion: new Date().toISOString()
         })
-        .eq('id', editandoId);
+        .eq('id', editandoId)
+        .select(); // 👈 ESTA LÍNEA ES LA CLAVE PARA DETECTAR EL ERROR
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error de Supabase:', error);
+        throw error;
+      }
+
+      // Verificar si se actualizó alguna fila
+      if (!updatedData || updatedData.length === 0) {
+        console.warn('⚠️ No se encontró ningún pedido con el ID:', editandoId);
+        throw new Error('No se pudo actualizar el pedido. Es posible que el ID no sea válido.');
+      }
+
+      console.log('✅ Datos actualizados correctamente:', updatedData);
 
       // Recargar datos y cerrar modal
       await cargarDatos();
       cerrarModalPedido();
+      router.refresh();
     } catch (error) {
-      console.error('Error actualizando pedido:', error);
-      alert('Error al actualizar pedido: ' + (error instanceof Error ? error.message : 'Error desconocido'));
+      console.error('💥 Error completo en catch:', error);
+      alert('Error al actualizar pedido:\n\n' + 
+        (error instanceof Error ? error.message : 'Error desconocido') + 
+        '\n\nRevisa la consola del navegador para más detalles.');
     } finally {
-      setActualizandoPedido(false); // Desactivar carga
+      setActualizandoPedido(false);
     }
   }
 
@@ -649,7 +662,7 @@ export default function AdminPage() {
 
               <button
                 type="submit"
-                disabled={actualizandoPedido} // ✅ Deshabilitar mientras carga
+                disabled={actualizandoPedido}
                 className="w-full bg-[#EC4899] text-white py-3 rounded-lg font-medium hover:bg-[#F59E0B] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {actualizandoPedido ? (

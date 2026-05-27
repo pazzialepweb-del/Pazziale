@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
-import { User, LogOut, ShoppingBag, Sparkles, Menu, X, ChevronDown } from 'lucide-react';
+import { User, LogOut, ShoppingBag, Menu, X, ChevronDown } from 'lucide-react';
 import { useCarrito } from '@/context/CarritoContext';
 
 export default function Navbar() {
@@ -52,7 +53,6 @@ export default function Navbar() {
 
   const cerrarMenu = () => setMenuAbierto(false);
 
-  // Definir las rutas de las categorías
   const categorias = [
     { nombre: 'Aros', ruta: '/aros' },
     { nombre: 'Anillos', ruta: '/anillos' },
@@ -60,17 +60,24 @@ export default function Navbar() {
     { nombre: 'Collares', ruta: '/collares' },
   ];
 
-  // Verificar si la ruta actual es una categoría o la tienda principal
   const isTiendaActive = pathname === '/tienda' || categorias.some(cat => pathname === cat.ruta);
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-[#1E1E1E]/90 backdrop-blur-sm border-b border-[#EC4899]/20">
       <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
         
-        {/* LOGO - AGrandado */}
-        <Link href="/" className="flex items-center gap-3">
-          <span className="text-4xl md:text-5xl font-serif italic tracking-wider text-[#EC4899]">Pazziale</span>
-          <Sparkles className="w-7 h-7 md:w-8 md:h-8 text-[#F59E0B]" />
+        {/* LOGO - Grande pero sin expandir la navbar */}
+        <Link href="/" className="relative flex items-center h-16 w-48">
+          <div className="absolute top-1/2 -translate-y-1/2 left-0 z-10">
+            <Image
+              src="/images/logo.png"
+              alt="Pazziale Logo"
+              width={400}
+              height={120}
+              className="h-28 w-auto object-contain"
+              priority
+            />
+          </div>
         </Link>
 
         {/* NAV DESKTOP */}
@@ -79,7 +86,6 @@ export default function Navbar() {
             Inicio
           </Link>
           
-          {/* MENÚ DESPLEGABLE DE TIENDA */}
           <div className="relative group">
             <Link 
               href="/tienda" 
@@ -90,7 +96,6 @@ export default function Navbar() {
               <ChevronDown className="w-3 h-3 ml-0.5 group-hover:rotate-180 transition-transform" />
             </Link>
 
-            {/* Submenú */}
             <div className="absolute top-full left-0 mt-2 w-48 bg-[#1E1E1E] border border-[#EC4899]/20 rounded-lg shadow-xl invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 z-50 overflow-hidden">
               <div className="py-2">
                 {categorias.map((categoria) => (
@@ -107,7 +112,6 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* Enlace al Carrito */}
           <Link href="/carrito" className={`hover:text-[#EC4899] transition-colors flex items-center gap-1 relative ${pathname === '/carrito' ? 'text-[#EC4899]' : 'text-white'}`}>
             <ShoppingBag className="w-4 h-4" />
             Carrito
@@ -126,7 +130,6 @@ export default function Navbar() {
 
           {user ? (
             <div className="flex items-center gap-4">
-              {/* ✅ NUEVO: Enlace al Perfil */}
               <Link 
                 href="/perfil" 
                 className={`hover:text-[#EC4899] transition-colors text-sm ${pathname === '/perfil' ? 'text-[#EC4899]' : 'text-white'}`}
@@ -172,7 +175,6 @@ export default function Navbar() {
             Tienda
           </Link>
 
-          {/* Categorías en móvil */}
           <div className="pl-6 flex flex-col gap-2 border-l border-[#EC4899]/20">
             {categorias.map((categoria) => (
               <Link 
@@ -204,7 +206,6 @@ export default function Navbar() {
 
           {user ? (
             <div className="flex flex-col gap-2">
-              {/* ✅ NUEVO: Enlace al Perfil en móvil */}
               <Link href="/perfil" onClick={cerrarMenu} className={`${pathname === '/perfil' ? 'text-[#EC4899]' : 'text-white'} hover:text-[#EC4899] transition-colors`}>
                 Perfil
               </Link>

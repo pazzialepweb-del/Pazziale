@@ -74,7 +74,7 @@ export default function CarritoPage() {
         imagen_url: item.imagen_url
       }));
 
-      // Insertar el pedido en Supabase
+      // 1. Insertar el pedido en Supabase
       const { data, error } = await supabase
         .from('pedidos')
         .insert([{
@@ -85,24 +85,72 @@ export default function CarritoPage() {
           direccion_envio: form.direccion,
           total: totalPrecio,
           estado: 'verificando',
-          items: itemsData // Guardamos los detalles de los productos
+          items: itemsData
         }])
         .select();
 
-      // 🔥 MEJORA: Mostrar el error real en la alerta
       if (error) {
-        console.error('❌ Error completo de Supabase:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        });
-        throw new Error(`Error de Supabase: ${error.message} (Código: ${error.code})`);
+        console.error('❌ Error de Supabase al crear pedido:', error);
+        throw new Error(`Error al crear el pedido: ${error.message}`);
       }
 
-      // Vaciar el carrito después de crear el pedido
+      // 2. Actualizar el stock de los productos
+      // Verificamos que cada producto tenga suficiente stock y lo descontamos
+      for (const item of items) {
+        // Obtener el stock actual del producto
+        const { data: producto, error: stockError } = await supabase
+          .from('productos')
+          .select('stock')
+          .eq('id', item.id)
+          .single();
+
+        if (stockError) {
+          throw new Error(`Error al verificar stock del producto ${item.nombre}: ${stockError.message}`);
+        }
+
+        if (!producto) {
+          throw new Error(`Producto ${item.nombre} no encontrado en la base de datos.`);
+        }
+
+        // Verificar si hay suficiente stock
+        if (producto.stock < item.cantidad) {
+          throw new Error(`Stock insuficiente para ${item.nombre}. Disponible: ${producto.stock}, Solicitado: ${item.cantidad}`);
+        }
+
+        // Actualizar el stock restando la cantidad comprada
+        const nuevoStock = producto.stock - item.cantidad;
+        const { error: updateError } = await supabase
+          .from('productos')
+          .update({ stock: nuevoStock })
+          .eq('id', item.id);
+
+        if (updateError) {
+          throw new Error(`Error al actualizar stock de ${item.nombre}: ${updateError.message}`);
+        }
+      }
+
+      // 3. Vaciar el carrito después de crear el pedido y actualizar el stock
       vaciarCarrito();
       setCheckoutOpen(false);
+
+      // ✅ CREAR MENSAJE DE WHATSAPP AUTOMÁTICO
+      // Construir el mensaje con los productos
+      let mensaje = "Hola! Realicé una compra en Pazziale.\n\n*Productos:*\n";
+      items.forEach(item => {
+        mensaje += `- ${item.nombre} (x${item.cantidad})\n`;
+      });
+      mensaje += `\n*Total:* $${totalPrecio.toLocaleString()}\n\n`;
+      mensaje += "*Nota:* Te enviaré el comprobante de la transferencia en breve.";
+
+      // Codificar el mensaje para URL
+      const mensajeCodificado = encodeURIComponent(mensaje);
+      const numeroWhatsApp = "56971593927";
+      const urlWhatsApp = `https://wa.me/${numeroWhatsApp}?text=${mensajeCodificado}`;
+
+      // Abrir WhatsApp en una nueva pestaña
+      window.open(urlWhatsApp, '_blank');
+
+      // 4. Mostrar mensaje de éxito y redirigir al perfil
       alert('🎉 ¡Pedido creado con éxito! Revisa el estado en tu perfil.');
       router.push('/perfil');
 

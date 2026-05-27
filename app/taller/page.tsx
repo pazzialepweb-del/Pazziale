@@ -52,11 +52,11 @@ export default function TallerPage() {
               </span>
             </div>
           </div>
-          <div className="relative h-64 md:h-96 rounded-2xl overflow-hidden border border-[#F59E0B]/30">
+          <div className="relative h-96 md:h-[500px] rounded-2xl overflow-hidden border border-[#F59E0B]/30">
             <img 
-              src="/images/anillo.jpg" 
+              src="/images/taller.jpg" 
               alt="Taller Pazziale" 
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#1E1E1E] via-transparent to-transparent"></div>
           </div>
@@ -95,6 +95,48 @@ export default function TallerPage() {
               </div>
               <h3 className="text-xl font-serif mb-2 text-[#EC4899]">Acabado</h3>
               <p className="text-gray-400 text-sm font-light">El pulido final revela el brillo y la belleza intrínseca de cada creación.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* NUEVA SECCIÓN: El Taller en Acción */}
+      <section className="py-20 bg-[#2D2D2D]">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <span className="text-[#EC4899] text-sm tracking-widest uppercase font-light block mb-2">En Acción</span>
+            <h2 className="text-3xl md:text-4xl font-serif mb-4 text-white">El <span className="text-[#F59E0B]">Taller</span> en Movimiento</h2>
+            <p className="text-gray-400 max-w-2xl mx-auto font-light">
+              Mira cómo el fuego, el metal y la pasión se unen para crear cada pieza única.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="relative rounded-xl overflow-hidden border border-[#F59E0B]/30 shadow-lg">
+              <video 
+                src="/images/video1.mp4" 
+                autoPlay 
+                loop 
+                muted 
+                controls 
+                playsInline
+                className="w-full h-full object-cover"
+              >
+                Tu navegador no soporta el elemento de video.
+              </video>
+            </div>
+            <div className="relative rounded-xl overflow-hidden border border-[#F59E0B]/30 shadow-lg">
+              <video 
+                src="/images/video2.mp4" 
+                autoPlay 
+                loop 
+                muted 
+                controls 
+                playsInline
+                className="w-full h-full object-cover"
+              >
+                Tu navegador no soporta el elemento de video.
+              </video>
             </div>
           </div>
         </div>

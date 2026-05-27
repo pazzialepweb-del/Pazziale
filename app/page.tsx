@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image'; // ✅ Importamos el componente Image
+import Image from 'next/image';
 import { 
   Mail, 
   Phone, 
@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
-// --- CONFIGURACIÓN DE IMÁGENES (Nombres de archivo actualizados) ---
 const images = [
   { id: 1, src: "/images/carrusel1.jpg", alt: "Anillo de Compromiso Pazziale" },
   { id: 2, src: "/images/carrusel2.jpg", alt: "Mariposa Esmaltada Pazziale" },
@@ -41,7 +40,6 @@ const HomePage: React.FC = () => {
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % images.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + images.length) % images.length);
 
-  // ✅ Definición de categorías usando las imágenes dedicadas que guardaste
   const categories = [
     { name: "Aros", href: "/aros", image: "/images/aros.jpg" },
     { name: "Anillos", href: "/anillos", image: "/images/anillos.jpg" },
@@ -102,12 +100,13 @@ const HomePage: React.FC = () => {
                   index === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
                 }`}
               >
-                {/* Usamos Image de Next.js para mayor robustez y rendimiento */}
+                {/* ✅ CAMBIAMOS object-cover POR object-contain para evitar el zoom excesivo */}
+                {/* También añadimos bg-[#1E1E1E] al contenedor padre para que los bordes se fusionen */}
                 <Image
                   src={img.src}
                   alt={img.alt}
                   fill
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                   priority={index === 0}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#1E1E1E] via-transparent to-transparent"></div>
