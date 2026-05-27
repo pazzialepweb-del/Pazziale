@@ -169,7 +169,7 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* --- SECCIÓN DE CATEGORÍAS MEJORADA --- */}
+      {/* --- SECCIÓN DE CATEGORÍAS - Sin sombras --- */}
       <section id="categories" className="py-20 px-6 bg-[#1E1E1E]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
@@ -192,14 +192,14 @@ const HomePage: React.FC = () => {
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                   />
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1E1E1E] via-[#1E1E1E]/60 to-transparent group-hover:via-[#1E1E1E]/40 transition-all duration-300"></div>
+                {/* ✅ ELIMINADA LA LÍNEA DE SOMBRA GRADIENTE */}
                 
                 <div className="absolute inset-0 flex flex-col items-center justify-end pb-8 px-4 text-center">
-                  <span className="text-3xl font-serif mb-2 text-white group-hover:text-[#F59E0B] transition-colors">
+                  <span className="text-3xl font-serif mb-2 text-white drop-shadow-lg group-hover:text-[#F59E0B] transition-colors">
                     {categoria.name}
                   </span>
                   <div className="opacity-0 transform translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
-                    <span className="inline-block border border-[#EC4899] text-[#EC4899] px-4 py-1.5 rounded-full text-xs font-medium hover:bg-[#EC4899] hover:text-white transition-colors">
+                    <span className="inline-block border border-[#EC4899] text-[#EC4899] px-4 py-1.5 rounded-full text-xs font-medium drop-shadow-lg hover:bg-[#EC4899] hover:text-white transition-colors">
                       Ver Colección
                     </span>
                   </div>
