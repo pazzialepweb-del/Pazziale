@@ -322,21 +322,46 @@ export default function AdminPage() {
     }
   }
 
-  // ✅ NUEVA FUNCIÓN: Eliminar pedido
-  async function handleEliminarPedido(id: string) {
+    // ✅ FUNCIÓN MEJORADA: Eliminar pedido
+    async function handleEliminarPedido(id: string) {
     if (!confirm('¿Estás seguro de que quieres eliminar este pedido?')) return;
 
     try {
+      // 1. Verificar si el pedido existe antes de eliminarlo (para diagnóstico)
+      const { data: exists, error: existsError } = await supabase
+        .from('pedidos')
+        .select('id')
+        .eq('id', id)
+        .single();
+
+      if (existsError || !exists) {
+        console.warn('⚠️ El pedido con ID:', id, 'ya no existe en la base de datos.');
+        // Actualizar la lista local para reflejar que ya no está
+        setPedidos(prev => prev.filter(p => p.id !== id));
+        return;
+      }
+
+      // 2. Eliminar el pedido
       const { error } = await supabase
         .from('pedidos')
         .delete()
         .eq('id', id);
-      if (error) throw error;
 
+      if (error) {
+        console.error('❌ Error de Supabase al eliminar:', error);
+        throw error;
+      }
+
+      // 3. Actualizar el estado local inmediatamente para que la UI reaccione
+      setPedidos(prev => prev.filter(p => p.id !== id));
+
+      // 4. Recargar datos desde la base de datos para estar sincronizados
       await cargarDatos();
+      console.log('✅ Datos recargados correctamente');
+
     } catch (error) {
-      console.error('Error eliminando pedido:', error);
-      alert('Error al eliminar pedido');
+      console.error('💥 Error eliminando pedido:', error);
+      alert('Error al eliminar pedido:\n\n' + (error instanceof Error ? error.message : 'Error desconocido'));
     }
   }
 

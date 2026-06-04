@@ -13,7 +13,8 @@ import {
   PenTool, 
   Hammer, 
   Heart,
-  Truck
+  Truck,
+  Star
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
@@ -52,6 +53,63 @@ const HomePage: React.FC = () => {
     <div className="min-h-screen bg-[#1E1E1E] text-white font-sans selection:bg-[#EC4899] selection:text-white overflow-x-hidden">
       
       <Navbar />
+
+      {/* --- FRANJA DE OFERTAS - Corregida con mt-20 para bajarla un poco --- */}
+      <div className="w-full bg-[#EC4899] py-2 overflow-hidden border-b border-[#F59E0B]/20 relative mt-24 z-10">
+        <div className="flex whitespace-nowrap animate-marquee">
+          {/* Repetimos el contenido muchas veces para que siempre haya texto visible */}
+          <span className="mx-4 text-white font-medium flex items-center gap-2">
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+            🎉 ¡Por el lanzamiento de la web tenemos ofertas! 🎉
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+          </span>
+          <span className="mx-4 text-white font-medium flex items-center gap-2">
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+            🎉 ¡Por el lanzamiento de la web tenemos ofertas! 🎉
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+          </span>
+          <span className="mx-4 text-white font-medium flex items-center gap-2">
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+            🎉 ¡Por el lanzamiento de la web tenemos ofertas! 🎉
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+          </span>
+          <span className="mx-4 text-white font-medium flex items-center gap-2">
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+            🎉 ¡Por el lanzamiento de la web tenemos ofertas! 🎉
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+          </span>
+          <span className="mx-4 text-white font-medium flex items-center gap-2">
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+            🎉 ¡Por el lanzamiento de la web tenemos ofertas! 🎉
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+          </span>
+          <span className="mx-4 text-white font-medium flex items-center gap-2">
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+            🎉 ¡Por el lanzamiento de la web tenemos ofertas! 🎉
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+          </span>
+          <span className="mx-4 text-white font-medium flex items-center gap-2">
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+            🎉 ¡Por el lanzamiento de la web tenemos ofertas! 🎉
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+          </span>
+          <span className="mx-4 text-white font-medium flex items-center gap-2">
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+            🎉 ¡Por el lanzamiento de la web tenemos ofertas! 🎉
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+          </span>
+          <span className="mx-4 text-white font-medium flex items-center gap-2">
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+            🎉 ¡Por el lanzamiento de la web tenemos ofertas! 🎉
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+          </span>
+          <span className="mx-4 text-white font-medium flex items-center gap-2">
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+            🎉 ¡Por el lanzamiento de la web tenemos ofertas! 🎉
+            <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+          </span>
+        </div>
+      </div>
 
       {/* --- HERO SECTION --- */}
       <section className="relative pt-32 pb-16 px-6 overflow-hidden">
@@ -244,15 +302,12 @@ const HomePage: React.FC = () => {
           <div>
             <h5 className="font-medium mb-4 text-[#F59E0B]">Contacto</h5>
             <ul className="space-y-3 text-gray-400 text-sm">
-              {/* ✅ Nuevo número de teléfono */}
               <li className="flex items-center gap-2 hover:text-white transition-colors">
                 <Phone className="w-4 h-4 text-[#EC4899]"/> +56936659341
               </li>
-              {/* ✅ Nuevo correo electrónico */}
               <li className="flex items-center gap-2 hover:text-white transition-colors">
                 <Mail className="w-4 h-4 text-[#EC4899]"/> pazzialepweb@gmail.com
               </li>
-              {/* ✅ Nueva línea de envío a todo Chile */}
               <li className="flex items-center gap-2 hover:text-white transition-colors">
                 <Truck className="w-4 h-4 text-[#EC4899]"/> Envío a todo Chile
               </li>

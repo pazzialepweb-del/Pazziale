@@ -144,7 +144,7 @@ export default function CarritoPage() {
 
       // Codificar el mensaje para URL
       const mensajeCodificado = encodeURIComponent(mensaje);
-      const numeroWhatsApp = "56971593927";
+      const numeroWhatsApp = "56936659341";
       const urlWhatsApp = `https://wa.me/${numeroWhatsApp}?text=${mensajeCodificado}`;
 
       // Abrir WhatsApp en una nueva pestaña
@@ -385,15 +385,15 @@ export default function CarritoPage() {
                 </form>
               </div>
 
-              {/* Información de transferencia */}
+              {/* Información de transferencia - ACTUALIZADA */}
               <div className="bg-[#2D2D2D] p-6 rounded-lg border border-[#F59E0B]/30">
                 <h3 className="text-lg font-medium mb-4 text-[#F59E0B]">Datos de transferencia</h3>
                 <div className="space-y-3 text-gray-300 text-sm">
-                  <p><span className="font-medium text-white">Banco:</span> Banco Estado</p>
-                  <p><span className="font-medium text-white">Titular:</span> Pazziale Joyería SpA</p>
-                  <p><span className="font-medium text-white">RUT:</span> 76.123.456-7</p>
-                  <p><span className="font-medium text-white">Cuenta Corriente:</span> 123456789</p>
-                  <p><span className="font-medium text-white">Correo:</span> contacto@pazziale.cl</p>
+                  <p><span className="font-medium text-white">Banco:</span> Banco BCI</p>
+                  <p><span className="font-medium text-white">Tipo de cuenta:</span> Chequera electrónica</p>
+                  <p><span className="font-medium text-white">Número de cuenta:</span> 777011675358</p>
+                  <p><span className="font-medium text-white">RUT titular:</span> 11.675.358-8</p>
+                  <p><span className="font-medium text-white">Correo:</span> Carlapazacevedo@gmail.com</p>
                   <div className="border-t border-[#F59E0B]/30 my-4 pt-4">
                     <p className="text-xs text-gray-400">
                       * Realiza la transferencia y luego confirma el pedido. Una vez verificado el pago, actualizaremos el estado de tu pedido.
