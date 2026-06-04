@@ -11,6 +11,7 @@ interface Producto {
   nombre: string;
   descripcion: string;
   precio: number;
+  precio_oferta?: number | null; // ✅ Nuevo campo
   imagen_url: string;
   categoria: string;
   stock: number;
@@ -49,6 +50,7 @@ export default function AdminPage() {
     nombre: '',
     descripcion: '',
     precio: '',
+    precio_oferta: '', // ✅ Nuevo campo en el formulario
     categoria: '',
     stock: '',
     dimensiones: '',
@@ -116,7 +118,8 @@ export default function AdminPage() {
     }
   }
 
-  // --- FUNCIONES DE PRODUCTOS (MANTENIDAS) ---
+  // --- FUNCIONES DE PRODUCTOS ---
+
   async function subirImagen(file: File): Promise<string> {
     const nombreArchivo = `${Date.now()}_${file.name}`;
     const { data, error } = await supabase.storage
@@ -145,10 +148,14 @@ export default function AdminPage() {
         imagen_url = await subirImagen(formProducto.imagen);
       }
 
+      // ✅ Guardar precio_oferta como null si está vacío
+      const precioOfertaVal = formProducto.precio_oferta.trim() === '' ? null : parseFloat(formProducto.precio_oferta);
+
       const productoData = {
         nombre: formProducto.nombre,
         descripcion: formProducto.descripcion,
         precio: parseFloat(formProducto.precio),
+        precio_oferta: precioOfertaVal, // ✅ Nuevo campo
         categoria: formProducto.categoria,
         imagen_url: imagen_url,
         stock: parseInt(formProducto.stock) || 0,
@@ -211,6 +218,7 @@ export default function AdminPage() {
         nombre: producto.nombre,
         descripcion: producto.descripcion,
         precio: producto.precio.toString(),
+        precio_oferta: producto.precio_oferta ? producto.precio_oferta.toString() : '', // ✅ Cargar precio oferta
         categoria: producto.categoria,
         stock: producto.stock.toString(),
         dimensiones: producto.dimensiones || '',
@@ -222,6 +230,7 @@ export default function AdminPage() {
         nombre: '',
         descripcion: '',
         precio: '',
+        precio_oferta: '',
         categoria: '',
         stock: '',
         dimensiones: '',
@@ -238,6 +247,7 @@ export default function AdminPage() {
       nombre: '',
       descripcion: '',
       precio: '',
+      precio_oferta: '',
       categoria: '',
       stock: '',
       dimensiones: '',
@@ -245,7 +255,7 @@ export default function AdminPage() {
     });
   }
 
-  // --- FUNCIONES DE PEDIDOS ---
+  // --- FUNCIONES DE PEDIDOS (Sin cambios relevantes) ---
 
   function abrirModalPedido(pedido?: Pedido) {
     if (pedido) {
@@ -282,7 +292,6 @@ export default function AdminPage() {
     setActualizandoPedido(true);
 
     try {
-      // ⚠️ CAMBIO IMPORTANTE: AÑADIMOS .select() PARA VERIFICAR CUÁNTAS FILAS SE ACTUALIZARON
       const { data: updatedData, error } = await supabase
         .from('pedidos')
         .update({
@@ -292,22 +301,15 @@ export default function AdminPage() {
           fecha_actualizacion: new Date().toISOString()
         })
         .eq('id', editandoId)
-        .select(); // 👈 ESTA LÍNEA ES LA CLAVE PARA DETECTAR EL ERROR
+        .select();
 
-      if (error) {
-        console.error('❌ Error de Supabase:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      // Verificar si se actualizó alguna fila
       if (!updatedData || updatedData.length === 0) {
         console.warn('⚠️ No se encontró ningún pedido con el ID:', editandoId);
         throw new Error('No se pudo actualizar el pedido. Es posible que el ID no sea válido.');
       }
 
-      console.log('✅ Datos actualizados correctamente:', updatedData);
-
-      // Recargar datos y cerrar modal
       await cargarDatos();
       cerrarModalPedido();
       router.refresh();
@@ -436,6 +438,7 @@ export default function AdminPage() {
                 <th className="p-4">Nombre</th>
                 <th className="p-4 hidden md:table-cell">Categoría</th>
                 <th className="p-4">Precio</th>
+                <th className="p-4 hidden md:table-cell">Oferta</th>
                 <th className="p-4 hidden md:table-cell">Stock</th>
                 <th className="p-4 hidden md:table-cell">Dimensiones</th>
                 <th className="p-4 text-right">Acciones</th>
@@ -454,6 +457,9 @@ export default function AdminPage() {
                   <td className="p-4 font-medium text-white">{producto.nombre}</td>
                   <td className="p-4 hidden md:table-cell text-gray-400">{producto.categoria}</td>
                   <td className="p-4 text-[#EC4899] font-medium">${producto.precio.toLocaleString()}</td>
+                  <td className="p-4 hidden md:table-cell text-[#EC4899] font-medium">
+                    {producto.precio_oferta ? `$${producto.precio_oferta.toLocaleString()}` : '—'}
+                  </td>
                   <td className="p-4 hidden md:table-cell text-[#F59E0B] font-medium">{producto.stock}</td>
                   <td className="p-4 hidden md:table-cell text-gray-400 text-sm truncate max-w-[150px]">{producto.dimensiones}</td>
                   <td className="p-4 text-right flex justify-end gap-2">
@@ -519,7 +525,7 @@ export default function AdminPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Precio ($)</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-300">Precio Normal ($)</label>
                   <input
                     type="number"
                     value={formProducto.precio}
@@ -529,14 +535,13 @@ export default function AdminPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Stock</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-300">Precio Oferta ($) (Opcional)</label>
                   <input
                     type="number"
-                    value={formProducto.stock}
-                    onChange={(e) => setFormProducto({...formProducto, stock: e.target.value})}
+                    value={formProducto.precio_oferta}
+                    onChange={(e) => setFormProducto({...formProducto, precio_oferta: e.target.value})}
                     className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
-                    required
-                    min="0"
+                    placeholder="Dejar vacío para sin oferta"
                   />
                 </div>
               </div>
@@ -559,6 +564,20 @@ export default function AdminPage() {
                   </select>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-300">Stock</label>
+                  <input
+                    type="number"
+                    value={formProducto.stock}
+                    onChange={(e) => setFormProducto({...formProducto, stock: e.target.value})}
+                    className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
+                    required
+                    min="0"
+                  />
+                </div>
+              </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                <div>
                   <label className="block text-sm font-medium mb-1 text-gray-300">Dimensiones</label>
                   <input
                     type="text"
@@ -568,22 +587,22 @@ export default function AdminPage() {
                     placeholder="Ej: 5cm x 3cm x 1cm, Peso: 2g"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-300">Imagen</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setFormProducto({...formProducto, imagen: e.target.files?.[0] || null})}
-                  className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:bg-[#EC4899] file:text-white file:font-medium hover:file:bg-[#F59E0B]"
-                />
-                {!editandoId && !formProducto.imagen && (
-                  <p className="text-xs text-gray-500 mt-1">Selecciona una imagen para el producto.</p>
-                )}
-                {editandoId && !formProducto.imagen && (
-                  <p className="text-xs text-gray-500 mt-1">Dejar vacío para mantener la imagen actual.</p>
-                )}
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-300">Imagen</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setFormProducto({...formProducto, imagen: e.target.files?.[0] || null})}
+                    className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:bg-[#EC4899] file:text-white file:font-medium hover:file:bg-[#F59E0B]"
+                  />
+                  {!editandoId && !formProducto.imagen && (
+                    <p className="text-xs text-gray-500 mt-1">Selecciona una imagen para el producto.</p>
+                  )}
+                  {editandoId && !formProducto.imagen && (
+                    <p className="text-xs text-gray-500 mt-1">Dejar vacío para mantener la imagen actual.</p>
+                  )}
+                </div>
               </div>
 
               <button

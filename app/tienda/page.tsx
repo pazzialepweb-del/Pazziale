@@ -11,6 +11,7 @@ interface Producto {
   nombre: string;
   descripcion: string;
   precio: number;
+  precio_oferta?: number | null; // ✅ Nuevo campo opcional
   imagen_url: string;
   categoria: string;
   stock: number;
@@ -25,7 +26,6 @@ export default function TiendaPage() {
 
   const { agregarAlCarrito } = useCarrito();
 
-  // ✅ Definición fija de las categorías en el orden deseado
   const categorias = ['Todos', 'Aros', 'Anillos', 'Pulseras', 'Collares'];
 
   useEffect(() => {
@@ -39,10 +39,8 @@ export default function TiendaPage() {
 
       let url = '/api/productos';
       
-      // ✅ Mapeamos el nombre visible al nombre real en la base de datos
       if (categoriaSeleccionada !== 'Todos') {
         let categoriaApi = categoriaSeleccionada;
-        // La categoría 'Aros' corresponde a 'Pendientes' en la base de datos
         if (categoriaSeleccionada === 'Aros') {
           categoriaApi = 'Pendientes';
         }
@@ -65,7 +63,7 @@ export default function TiendaPage() {
     }
   }
 
-  const handleAgregarAlCarrito = (productoId: string, nombreProducto: string) => {
+  const handleAgregarAlCarrito = (productoId: string, nombreProducto: string, precio: number) => {
     try {
       const fullProducto = productos.find(p => p.id === productoId);
       
@@ -73,7 +71,7 @@ export default function TiendaPage() {
         agregarAlCarrito({
           id: fullProducto.id,
           nombre: fullProducto.nombre,
-          precio: fullProducto.precio,
+          precio: precio, // ✅ Usa el precio (oferta o normal) que se pasa como argumento
           imagen_url: fullProducto.imagen_url
         });
         
@@ -91,7 +89,6 @@ export default function TiendaPage() {
     <div className="min-h-screen bg-[#1E1E1E] text-white">
       <Navbar />
 
-      {/* Notificación de éxito flotante */}
       {mensajeExito && (
         <div className="fixed top-24 right-6 z-50 bg-[#2D2D2D] border border-[#F59E0B] text-white px-6 py-3 rounded-lg shadow-2xl animate-fade-in-up flex items-center gap-2">
           <CheckCircle className="w-5 h-5 text-[#EC4899]" />
@@ -108,7 +105,6 @@ export default function TiendaPage() {
             </p>
           </div>
 
-          {/* Filtros fijos */}
           <div className="flex flex-wrap justify-center gap-4 mb-12">
             {categorias.map((categoria) => (
               <button
@@ -157,13 +153,29 @@ export default function TiendaPage() {
                   <p className="text-gray-400 text-sm font-light mb-2 line-clamp-1">{producto.descripcion}</p>
                   <div className="flex items-center justify-between mt-2">
                     <div>
-                      <p className="text-[#F59E0B] font-medium">${producto.precio.toLocaleString()}</p>
+                      {/* ✅ Lógica para mostrar precio con oferta */}
+                      {producto.precio_oferta ? (
+                        <>
+                          <p className="text-gray-400 text-sm line-through">
+                            ${producto.precio.toLocaleString()}
+                          </p>
+                          <p className="text-[#EC4899] font-medium">
+                            ${producto.precio_oferta.toLocaleString()}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-[#F59E0B] font-medium">
+                          ${producto.precio.toLocaleString()}
+                        </p>
+                      )}
                       <p className="text-xs text-gray-500">Stock: {producto.stock}</p>
                     </div>
                     <button
                       onClick={(e) => {
                         e.preventDefault();
-                        handleAgregarAlCarrito(producto.id, producto.nombre);
+                        // ✅ Se pasa el precio de oferta si existe, o el normal si no
+                        const precioACobrar = producto.precio_oferta ?? producto.precio;
+                        handleAgregarAlCarrito(producto.id, producto.nombre, precioACobrar);
                       }}
                       disabled={producto.stock === 0}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-colors text-sm ${

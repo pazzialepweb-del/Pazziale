@@ -12,10 +12,11 @@ interface Producto {
   nombre: string;
   descripcion: string;
   precio: number;
+  precio_oferta?: number | null; // ✅ Nuevo campo opcional
   imagen_url: string;
   categoria: string;
   stock: number;
-  dimensiones: string; // ✅ Nuevo campo
+  dimensiones: string;
 }
 
 export default function ProductoPage() {
@@ -71,7 +72,6 @@ export default function ProductoPage() {
   async function fetchProductosSimilares(productoActual: Producto) {
     try {
       const SIMILAR_LIMIT = 4;
-      // ✅ TIPADO EXPLÍCITO: Le decimos a TypeScript que será un array de Producto
       let allSimilars: Producto[] = [];
 
       // --- PASO 1: Buscar en la MISMA categoría ---
@@ -104,28 +104,27 @@ export default function ProductoPage() {
 
         if (otherResponse.ok) {
           const otherData = await otherResponse.json();
-          // Combinamos los resultados (primero los de la misma categoría, luego los de otras)
           allSimilars = [...allSimilars, ...(otherData || [])];
         }
       }
 
-      // --- PASO 3: Filtrado final para asegurar que no aparezca el producto actual ---
-      // ✅ Ahora TypeScript sabe que 'allSimilars' contiene objetos 'Producto', por lo que 'p' se infiere correctamente
       setProductosSimilares(allSimilars.filter(p => p.id !== productoActual.id));
 
     } catch (error) {
       console.error('Error cargando productos similares:', error);
-      // Si falla la carga de similares, simplemente no mostramos la sección
     }
   }
 
   const handleAgregarAlCarrito = () => {
     if (!producto) return;
     try {
+      // ✅ Determinar el precio final (oferta si existe, sino el normal)
+      const precioFinal = producto.precio_oferta ?? producto.precio;
+      
       agregarAlCarrito({
         id: producto.id,
         nombre: producto.nombre,
-        precio: producto.precio,
+        precio: precioFinal, // ✅ Se envía el precio correcto
         imagen_url: producto.imagen_url
       });
       setMensajeExito(`✅ ${producto.nombre} agregado al carrito`);
@@ -201,7 +200,22 @@ export default function ProductoPage() {
           {/* Detalles del producto */}
           <div className="flex flex-col justify-center">
             <h1 className="text-4xl md:text-5xl font-serif mb-2">{producto.nombre}</h1>
-            <p className="text-[#EC4899] text-2xl font-medium mb-4">${producto.precio.toLocaleString()}</p>
+            
+            {/* ✅ Lógica para mostrar precio con oferta */}
+            {producto.precio_oferta ? (
+              <div className="mb-4">
+                <p className="text-gray-400 text-lg line-through">
+                  ${producto.precio.toLocaleString()}
+                </p>
+                <p className="text-[#EC4899] text-3xl font-medium">
+                  ${producto.precio_oferta.toLocaleString()}
+                </p>
+              </div>
+            ) : (
+              <p className="text-[#EC4899] text-2xl font-medium mb-4">
+                ${producto.precio.toLocaleString()}
+              </p>
+            )}
             
             <div className="flex items-center gap-4 mb-4">
               <span className={`px-3 py-1 rounded-full text-xs font-medium ${producto.stock > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
@@ -217,7 +231,6 @@ export default function ProductoPage() {
               <p className="text-gray-400 leading-relaxed">
                 {producto.descripcion}
               </p>
-              {/* ✅ Mostrar dimensiones si existen */}
               {producto.dimensiones && (
                 <div className="mt-3">
                   <span className="text-sm text-gray-400 block">Dimensiones:</span>
@@ -274,7 +287,23 @@ export default function ProductoPage() {
                     )}
                   </div>
                   <h4 className="text-sm font-serif mb-1 line-clamp-1">{similar.nombre}</h4>
-                  <p className="text-[#F59E0B] text-sm font-medium">${similar.precio.toLocaleString()}</p>
+                  {/* ✅ Mostrar precio con oferta en productos similares */}
+                  <div className="text-sm">
+                    {similar.precio_oferta ? (
+                      <>
+                        <span className="text-gray-400 text-xs line-through">
+                          ${similar.precio.toLocaleString()}
+                        </span>
+                        <span className="text-[#F59E0B] font-medium ml-1">
+                          ${similar.precio_oferta.toLocaleString()}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-[#F59E0B] font-medium">
+                        ${similar.precio.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
                 </Link>
               ))}
             </div>

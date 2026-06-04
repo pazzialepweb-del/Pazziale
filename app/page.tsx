@@ -13,6 +13,7 @@ import {
   PenTool, 
   Hammer, 
   Heart,
+  Truck
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
@@ -107,7 +108,6 @@ const HomePage: React.FC = () => {
                   className="w-full h-full object-contain"
                   priority={index === 0}
                 />
-                {/* ✅ ELIMINADA LA LÍNEA DE SOMBRA GRADIENTE */}
               </div>
             ))}
             
@@ -192,7 +192,6 @@ const HomePage: React.FC = () => {
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                   />
                 </div>
-                {/* ✅ ELIMINADA LA LÍNEA DE SOMBRA GRADIENTE */}
                 
                 <div className="absolute inset-0 flex flex-col items-center justify-end pb-8 px-4 text-center">
                   <span className="text-3xl font-serif mb-2 text-white drop-shadow-lg group-hover:text-[#F59E0B] transition-colors">
@@ -245,11 +244,17 @@ const HomePage: React.FC = () => {
           <div>
             <h5 className="font-medium mb-4 text-[#F59E0B]">Contacto</h5>
             <ul className="space-y-3 text-gray-400 text-sm">
+              {/* ✅ Nuevo número de teléfono */}
               <li className="flex items-center gap-2 hover:text-white transition-colors">
-                <Phone className="w-4 h-4 text-[#EC4899]"/> +56 9 1234 5678
+                <Phone className="w-4 h-4 text-[#EC4899]"/> +56936659341
               </li>
+              {/* ✅ Nuevo correo electrónico */}
               <li className="flex items-center gap-2 hover:text-white transition-colors">
-                <Mail className="w-4 h-4 text-[#EC4899]"/> contacto@pazziale.cl
+                <Mail className="w-4 h-4 text-[#EC4899]"/> pazzialepweb@gmail.com
+              </li>
+              {/* ✅ Nueva línea de envío a todo Chile */}
+              <li className="flex items-center gap-2 hover:text-white transition-colors">
+                <Truck className="w-4 h-4 text-[#EC4899]"/> Envío a todo Chile
               </li>
             </ul>
           </div>
