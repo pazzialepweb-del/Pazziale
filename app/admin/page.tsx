@@ -11,7 +11,7 @@ interface Producto {
   nombre: string;
   descripcion: string;
   precio: number;
-  precio_oferta?: number | null; // ✅ Nuevo campo
+  precio_oferta?: number | null;
   imagen_url: string;
   categoria: string;
   stock: number;
@@ -50,7 +50,7 @@ export default function AdminPage() {
     nombre: '',
     descripcion: '',
     precio: '',
-    precio_oferta: '', // ✅ Nuevo campo en el formulario
+    precio_oferta: '',
     categoria: '',
     stock: '',
     dimensiones: '',
@@ -148,14 +148,13 @@ export default function AdminPage() {
         imagen_url = await subirImagen(formProducto.imagen);
       }
 
-      // ✅ Guardar precio_oferta como null si está vacío
       const precioOfertaVal = formProducto.precio_oferta.trim() === '' ? null : parseFloat(formProducto.precio_oferta);
 
       const productoData = {
         nombre: formProducto.nombre,
         descripcion: formProducto.descripcion,
         precio: parseFloat(formProducto.precio),
-        precio_oferta: precioOfertaVal, // ✅ Nuevo campo
+        precio_oferta: precioOfertaVal,
         categoria: formProducto.categoria,
         imagen_url: imagen_url,
         stock: parseInt(formProducto.stock) || 0,
@@ -218,7 +217,7 @@ export default function AdminPage() {
         nombre: producto.nombre,
         descripcion: producto.descripcion,
         precio: producto.precio.toString(),
-        precio_oferta: producto.precio_oferta ? producto.precio_oferta.toString() : '', // ✅ Cargar precio oferta
+        precio_oferta: producto.precio_oferta ? producto.precio_oferta.toString() : '',
         categoria: producto.categoria,
         stock: producto.stock.toString(),
         dimensiones: producto.dimensiones || '',
@@ -255,7 +254,7 @@ export default function AdminPage() {
     });
   }
 
-  // --- FUNCIONES DE PEDIDOS (Sin cambios relevantes) ---
+  // --- FUNCIONES DE PEDIDOS ---
 
   function abrirModalPedido(pedido?: Pedido) {
     if (pedido) {
@@ -320,6 +319,24 @@ export default function AdminPage() {
         '\n\nRevisa la consola del navegador para más detalles.');
     } finally {
       setActualizandoPedido(false);
+    }
+  }
+
+  // ✅ NUEVA FUNCIÓN: Eliminar pedido
+  async function handleEliminarPedido(id: string) {
+    if (!confirm('¿Estás seguro de que quieres eliminar este pedido?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('pedidos')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+
+      await cargarDatos();
+    } catch (error) {
+      console.error('Error eliminando pedido:', error);
+      alert('Error al eliminar pedido');
     }
   }
 
@@ -417,6 +434,14 @@ export default function AdminPage() {
                       title="Editar pedido"
                     >
                       <Edit className="w-4 h-4" />
+                    </button>
+                    {/* ✅ NUEVO BOTÓN: Eliminar pedido */}
+                    <button
+                      onClick={() => handleEliminarPedido(pedido.id)}
+                      className="p-2 bg-red-500/20 hover:bg-red-500/40 rounded-lg transition-colors text-red-400"
+                      title="Eliminar pedido"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </td>
                 </tr>
@@ -576,7 +601,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-300">Dimensiones</label>
                   <input
