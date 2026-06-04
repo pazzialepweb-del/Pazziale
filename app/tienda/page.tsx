@@ -26,7 +26,7 @@ export default function TiendaPage() {
 
   const { agregarAlCarrito } = useCarrito();
 
-  const categorias = ['Todos', 'Aros', 'Anillos', 'Pulseras', 'Collares'];
+  const categorias = ['Todos', 'Aros', 'Anillos', 'Pulseras', 'Collares', 'Accesorios'];
 
   useEffect(() => {
     fetchProductos();

@@ -54,11 +54,12 @@ export default function Navbar() {
   const cerrarMenu = () => setMenuAbierto(false);
 
   const categorias = [
-    { nombre: 'Aros', ruta: '/aros' },
-    { nombre: 'Anillos', ruta: '/anillos' },
-    { nombre: 'Pulseras', ruta: '/pulseras' },
-    { nombre: 'Collares', ruta: '/collares' },
-  ];
+  { nombre: 'Aros', ruta: '/aros' },
+  { nombre: 'Anillos', ruta: '/anillos' },
+  { nombre: 'Pulseras', ruta: '/pulseras' },
+  { nombre: 'Collares', ruta: '/collares' },
+  { nombre: 'Accesorios', ruta: '/accesorios' },
+];
 
   const isTiendaActive = pathname === '/tienda' || categorias.some(cat => pathname === cat.ruta);
 

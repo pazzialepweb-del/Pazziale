@@ -43,11 +43,12 @@ const HomePage: React.FC = () => {
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + images.length) % images.length);
 
   const categories = [
-    { name: "Aros", href: "/aros", image: "/images/aros.jpg" },
-    { name: "Anillos", href: "/anillos", image: "/images/anillos.jpg" },
-    { name: "Pulseras", href: "/pulseras", image: "/images/pulseras.jpg" },
-    { name: "Collares", href: "/collares", image: "/images/collares.jpg" },
-  ];
+  { name: "Aros", href: "/aros", image: "/images/aros.jpg" },
+  { name: "Anillos", href: "/anillos", image: "/images/anillos.jpg" },
+  { name: "Pulseras", href: "/pulseras", image: "/images/pulseras.jpg" },
+  { name: "Collares", href: "/collares", image: "/images/collares.jpg" },
+  { name: "Accesorios", href: "/accesorios", image: "/images/accesorios.jpg" },
+];
 
   return (
     <div className="min-h-screen bg-[#1E1E1E] text-white font-sans selection:bg-[#EC4899] selection:text-white overflow-x-hidden">

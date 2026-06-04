@@ -610,6 +610,7 @@ export default function AdminPage() {
                     <option value="Pendientes">Pendientes</option>
                     <option value="Collares">Collares</option>
                     <option value="Pulseras">Pulseras</option>
+                    <option value="Accesorios">Accesorios</option>
                     <option value="Broches">Broches</option>
                   </select>
                 </div>
