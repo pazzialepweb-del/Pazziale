@@ -64,7 +64,7 @@ export default function Navbar() {
   const isTiendaActive = pathname === '/tienda' || categorias.some(cat => pathname === cat.ruta);
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-[#1A2238]/90 backdrop-blur-sm border-b border-[#EC4899]/20">
+    <nav className="fixed top-0 w-full z-50 bg-[#233B5A]/90 backdrop-blur-sm border-b border-[#EC4899]/20">
       <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
         
         {/* LOGO */}
@@ -97,7 +97,7 @@ export default function Navbar() {
               <ChevronDown className="w-3 h-3 ml-0.5 group-hover:rotate-180 transition-transform" />
             </Link>
 
-            <div className="absolute top-full left-0 mt-2 w-48 bg-[#1A2238] border border-[#EC4899]/20 rounded-lg shadow-xl invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 z-50 overflow-hidden">
+            <div className="absolute top-full left-0 mt-2 w-48 bg-[#233B5A] border border-[#EC4899]/20 rounded-lg shadow-xl invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 z-50 overflow-hidden">
               <div className="py-2">
                 {categorias.map((categoria) => (
                   <Link 
@@ -166,7 +166,7 @@ export default function Navbar() {
 
       {/* MENÚ MÓVIL (DESPLEGABLE) */}
       {menuAbierto && (
-        <div className="md:hidden bg-[#1A2238] border-t border-[#EC4899]/20 px-6 py-4 flex flex-col gap-4 text-sm">
+        <div className="md:hidden bg-[#233B5A] border-t border-[#EC4899]/20 px-6 py-4 flex flex-col gap-4 text-sm">
           <Link href="/" onClick={cerrarMenu} className={`${pathname === '/' ? 'text-[#EC4899]' : 'text-white'} hover:text-[#EC4899] transition-colors`}>
             Inicio
           </Link>
