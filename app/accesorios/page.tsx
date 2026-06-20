@@ -36,7 +36,8 @@ export default function AccesoriosPage() {
       setLoading(true);
       setError('');
 
-      const url = `/api/productos?categoria=${encodeURIComponent(CATEGORIA)}`;
+      // ✅ Agregar paginación para aprovechar el caché de la API
+      const url = `/api/productos?categoria=${encodeURIComponent(CATEGORIA)}&page=1&limit=12`;
 
       const response = await fetch(url);
       
@@ -44,8 +45,10 @@ export default function AccesoriosPage() {
         throw new Error('Error al cargar los productos');
       }
 
-      const data = await response.json();
-      setProductos(data || []);
+      const json = await response.json();
+      
+      // ✅ Leer la propiedad 'data' de la nueva estructura de respuesta
+      setProductos(json.data || []);
     } catch (error) {
       console.error('Error cargando productos:', error);
       setError(error instanceof Error ? error.message : 'Error desconocido');
@@ -194,6 +197,10 @@ export default function AccesoriosPage() {
             <ul className="space-y-2 text-gray-400 text-sm">
               <li><a href="/" className="hover:text-[#EC4899] transition-colors">Inicio</a></li>
               <li><a href="/tienda" className="hover:text-[#EC4899] transition-colors">Tienda</a></li>
+              <li><a href="/aros" className="hover:text-[#EC4899] transition-colors">Aros</a></li>
+              <li><a href="/anillos" className="hover:text-[#EC4899] transition-colors">Anillos</a></li>
+              <li><a href="/pulseras" className="hover:text-[#EC4899] transition-colors">Pulseras</a></li>
+              <li><a href="/collares" className="hover:text-[#EC4899] transition-colors">Collares</a></li>
               <li><a href="/accesorios" className="hover:text-[#EC4899] transition-colors">Accesorios</a></li>
             </ul>
           </div>

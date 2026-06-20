@@ -37,14 +37,14 @@ export default function TiendaPage() {
       setLoading(true);
       setError('');
 
-      let url = '/api/productos';
-      
+      // Construir la URL con el filtro de categoría y paginación
+      let url = '/api/productos?page=1&limit=12';
       if (categoriaSeleccionada !== 'Todos') {
         let categoriaApi = categoriaSeleccionada;
         if (categoriaSeleccionada === 'Aros') {
           categoriaApi = 'Pendientes';
         }
-        url += `?categoria=${encodeURIComponent(categoriaApi)}`;
+        url += `&categoria=${encodeURIComponent(categoriaApi)}`;
       }
 
       const response = await fetch(url);
@@ -53,8 +53,10 @@ export default function TiendaPage() {
         throw new Error('Error al cargar los productos');
       }
 
-      const data = await response.json();
-      setProductos(data || []);
+      const json = await response.json();
+      
+      // ✅ CORRECCIÓN: Leer la propiedad 'data' del objeto de respuesta
+      setProductos(json.data || []);
     } catch (error) {
       console.error('Error cargando productos:', error);
       setError(error instanceof Error ? error.message : 'Error desconocido');

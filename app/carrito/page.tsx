@@ -46,7 +46,7 @@ export default function CarritoPage() {
     setHydrated(true);
   }, []);
 
-  const handleCheckout = async (e: React.FormEvent) => {
+  const handleMercadoPagoCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setProcesando(true);
 
@@ -60,7 +60,7 @@ export default function CarritoPage() {
 
       // Validar que el formulario esté completo
       if (!form.nombre || !form.direccion || !form.telefono || !form.email) {
-        alert('Por favor, completa todos los campos del formulario.');
+        alert('Por favor, completa todos los datos de envío.');
         setProcesando(false);
         return;
       }
@@ -74,8 +74,9 @@ export default function CarritoPage() {
         imagen_url: item.imagen_url
       }));
 
-      // 1. Insertar el pedido en Supabase
-      const { data, error } = await supabase
+      // 1. Insertar el pedido en Supabase (Estado inicial: verificando)
+      // El stock se descontará en el webhook cuando Mercado Pago confirme el pago
+      const { data: pedidoData, error } = await supabase
         .from('pedidos')
         .insert([{
           user_id: user.id,
@@ -94,69 +95,52 @@ export default function CarritoPage() {
         throw new Error(`Error al crear el pedido: ${error.message}`);
       }
 
-      // 2. Actualizar el stock de los productos
-      // Verificamos que cada producto tenga suficiente stock y lo descontamos
-      for (const item of items) {
-        // Obtener el stock actual del producto
-        const { data: producto, error: stockError } = await supabase
-          .from('productos')
-          .select('stock')
-          .eq('id', item.id)
-          .single();
-
-        if (stockError) {
-          throw new Error(`Error al verificar stock del producto ${item.nombre}: ${stockError.message}`);
-        }
-
-        if (!producto) {
-          throw new Error(`Producto ${item.nombre} no encontrado en la base de datos.`);
-        }
-
-        // Verificar si hay suficiente stock
-        if (producto.stock < item.cantidad) {
-          throw new Error(`Stock insuficiente para ${item.nombre}. Disponible: ${producto.stock}, Solicitado: ${item.cantidad}`);
-        }
-
-        // Actualizar el stock restando la cantidad comprada
-        const nuevoStock = producto.stock - item.cantidad;
-        const { error: updateError } = await supabase
-          .from('productos')
-          .update({ stock: nuevoStock })
-          .eq('id', item.id);
-
-        if (updateError) {
-          throw new Error(`Error al actualizar stock de ${item.nombre}: ${updateError.message}`);
-        }
-      }
-
-      // 3. Vaciar el carrito después de crear el pedido y actualizar el stock
+      // 2. Vaciar el carrito (el stock se actualizará en el webhook)
       vaciarCarrito();
       setCheckoutOpen(false);
 
-      // ✅ CREAR MENSAJE DE WHATSAPP AUTOMÁTICO
-      // Construir el mensaje con los productos
-      let mensaje = "Hola! Realicé una compra en Pazziale.\n\n*Productos:*\n";
-      items.forEach(item => {
-        mensaje += `- ${item.nombre} (x${item.cantidad})\n`;
+      // 3. Crear la preferencia en Mercado Pago
+      const response = await fetch('/api/create-preference', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: items.map(item => ({
+            id: item.id,
+            nombre: item.nombre,
+            cantidad: item.cantidad,
+            precio: item.precio,
+            imagen_url: item.imagen_url,
+          })),
+          payer: {
+            nombre: form.nombre,
+            email: form.email,
+            telefono: form.telefono,
+          },
+          total: totalPrecio,
+        }),
       });
-      mensaje += `\n*Total:* $${totalPrecio.toLocaleString()}\n\n`;
-      mensaje += "*Nota:* Te enviaré el comprobante de la transferencia en breve.";
 
-      // Codificar el mensaje para URL
-      const mensajeCodificado = encodeURIComponent(mensaje);
-      const numeroWhatsApp = "56936659341";
-      const urlWhatsApp = `https://wa.me/${numeroWhatsApp}?text=${mensajeCodificado}`;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al crear la preferencia de pago');
+      }
 
-      // Abrir WhatsApp en una nueva pestaña
-      window.open(urlWhatsApp, '_blank');
+      const preference = await response.json();
 
-      // 4. Mostrar mensaje de éxito y redirigir al perfil
-      alert('🎉 ¡Pedido creado con éxito! Revisa el estado en tu perfil.');
-      router.push('/perfil');
+      // 4. Redirigir al usuario a Mercado Pago
+      if (preference.sandbox_init_point) {
+        // Para entorno de pruebas (Sandbox)
+        window.location.href = preference.sandbox_init_point;
+      } else if (preference.init_point) {
+        // Para entorno de producción
+        window.location.href = preference.init_point;
+      } else {
+        throw new Error('No se pudo obtener el enlace de pago');
+      }
 
     } catch (error) {
-      console.error('Error creando pedido:', error);
-      alert(`❌ Error al procesar el pedido:\n\n${error instanceof Error ? error.message : 'Error desconocido'}`);
+      console.error('Error al procesar el pago:', error);
+      alert(`❌ Error al procesar el pago:\n\n${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setProcesando(false);
     }
@@ -316,7 +300,7 @@ export default function CarritoPage() {
       {/* --- MODAL DE CHECKOUT --- */}
       {checkoutOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1E1E1E] border border-[#EC4899]/30 rounded-2xl max-w-2xl w-full p-8 relative shadow-2xl">
+          <div className="bg-[#1E1E1E] border border-[#EC4899]/30 rounded-2xl max-w-md w-full p-8 relative shadow-2xl">
             <button
               onClick={() => setCheckoutOpen(false)}
               className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors"
@@ -324,84 +308,64 @@ export default function CarritoPage() {
               <X className="w-6 h-6" />
             </button>
             
-            <h2 className="text-3xl font-serif mb-6 text-white">Finalizar Compra</h2>
+            <h2 className="text-3xl font-serif mb-6 text-white text-center">Datos de Envío</h2>
             
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Formulario de datos del cliente */}
+            <form onSubmit={handleMercadoPagoCheckout} className="space-y-4 mt-4">
               <div>
-                <h3 className="text-lg font-medium mb-4 text-[#F59E0B]">Datos de envío</h3>
-                <form onSubmit={handleCheckout} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-300">Nombre completo</label>
-                    <input
-                      type="text"
-                      value={form.nombre}
-                      onChange={(e) => setForm({...form, nombre: e.target.value})}
-                      className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-300">Dirección</label>
-                    <input
-                      type="text"
-                      value={form.direccion}
-                      onChange={(e) => setForm({...form, direccion: e.target.value})}
-                      className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-300">Teléfono</label>
-                    <input
-                      type="tel"
-                      value={form.telefono}
-                      onChange={(e) => setForm({...form, telefono: e.target.value})}
-                      className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-300">Correo electrónico</label>
-                    <input
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => setForm({...form, email: e.target.value})}
-                      className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
-                      required
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={procesando}
-                    className="w-full bg-[#EC4899] text-white py-3 rounded-lg font-medium hover:bg-[#F59E0B] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {procesando ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" /> Procesando...
-                      </>
-                    ) : 'Confirmar pedido'}
-                  </button>
-                </form>
+                <label className="block text-sm font-medium mb-1 text-gray-300">Nombre completo</label>
+                <input
+                  type="text"
+                  value={form.nombre}
+                  onChange={(e) => setForm({...form, nombre: e.target.value})}
+                  className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-300">Dirección</label>
+                <input
+                  type="text"
+                  value={form.direccion}
+                  onChange={(e) => setForm({...form, direccion: e.target.value})}
+                  className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-300">Teléfono</label>
+                <input
+                  type="tel"
+                  value={form.telefono}
+                  onChange={(e) => setForm({...form, telefono: e.target.value})}
+                  className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-300">Correo electrónico</label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({...form, email: e.target.value})}
+                  className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
+                  required
+                />
               </div>
 
-              {/* Información de transferencia - ACTUALIZADA */}
-              <div className="bg-[#2D2D2D] p-6 rounded-lg border border-[#F59E0B]/30">
-                <h3 className="text-lg font-medium mb-4 text-[#F59E0B]">Datos de transferencia</h3>
-                <div className="space-y-3 text-gray-300 text-sm">
-                  <p><span className="font-medium text-white">Banco:</span> Banco BCI</p>
-                  <p><span className="font-medium text-white">Tipo de cuenta:</span> Chequera electrónica</p>
-                  <p><span className="font-medium text-white">Número de cuenta:</span> 777011675358</p>
-                  <p><span className="font-medium text-white">RUT titular:</span> 11.675.358-8</p>
-                  <p><span className="font-medium text-white">Correo:</span> Carlapazacevedo@gmail.com</p>
-                  <div className="border-t border-[#F59E0B]/30 my-4 pt-4">
-                    <p className="text-xs text-gray-400">
-                      * Realiza la transferencia y luego confirma el pedido. Una vez verificado el pago, actualizaremos el estado de tu pedido.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+              <button
+                type="submit"
+                disabled={procesando}
+                className="w-full bg-[#009EE3] text-white py-3 rounded-lg font-medium hover:bg-[#3483FA] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mt-6"
+              >
+                {procesando ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" /> Procesando...
+                  </>
+                ) : (
+                  'Pagar con Mercado Pago'
+                )}
+              </button>
+            </form>
           </div>
         </div>
       )}

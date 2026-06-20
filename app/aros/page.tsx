@@ -36,7 +36,8 @@ export default function ArosPage() {
       setLoading(true);
       setError('');
 
-      const url = `/api/productos?categoria=${encodeURIComponent(CATEGORIA)}`;
+      // ✅ Agregar paginación para aprovechar el caché de la API
+      const url = `/api/productos?categoria=${encodeURIComponent(CATEGORIA)}&page=1&limit=12`;
 
       const response = await fetch(url);
       
@@ -44,8 +45,10 @@ export default function ArosPage() {
         throw new Error('Error al cargar los productos');
       }
 
-      const data = await response.json();
-      setProductos(data || []);
+      const json = await response.json();
+      
+      // ✅ Leer la propiedad 'data' de la nueva estructura de respuesta
+      setProductos(json.data || []);
     } catch (error) {
       console.error('Error cargando productos:', error);
       setError(error instanceof Error ? error.message : 'Error desconocido');
@@ -61,7 +64,7 @@ export default function ArosPage() {
         agregarAlCarrito({
           id: fullProducto.id,
           nombre: fullProducto.nombre,
-          precio: precioACobrar, // ✅ Se envía el precio correcto (oferta o normal)
+          precio: precioACobrar,
           imagen_url: fullProducto.imagen_url
         });
         setMensajeExito(`✅ ${nombreProducto} agregado al carrito`);
