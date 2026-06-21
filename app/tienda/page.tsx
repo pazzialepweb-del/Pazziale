@@ -37,8 +37,8 @@ export default function TiendaPage() {
       setLoading(true);
       setError('');
 
-      // Construir la URL con el filtro de categoría y paginación
-      let url = '/api/productos?page=1&limit=12';
+      // ✅ CAMBIO: Aumentamos el límite de 12 a 100 en la URL base
+      let url = '/api/productos?page=1&limit=100';
       if (categoriaSeleccionada !== 'Todos') {
         let categoriaApi = categoriaSeleccionada;
         if (categoriaSeleccionada === 'Aros') {
