@@ -37,7 +37,7 @@ export default function CollaresPage() {
       setError('');
 
       // ✅ Agregar paginación para aprovechar el caché de la API
-      const url = `/api/productos?categoria=${encodeURIComponent(CATEGORIA)}&page=1&limit=12`;
+      const url = `/api/productos?categoria=${encodeURIComponent(CATEGORIA)}&page=1&limit=100`;
 
       const response = await fetch(url);
       

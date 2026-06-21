@@ -11,7 +11,7 @@ interface Producto {
   nombre: string;
   descripcion: string;
   precio: number;
-  precio_oferta?: number | null; // ✅ Nuevo campo opcional
+  precio_oferta?: number | null;
   imagen_url: string;
   categoria: string;
   stock: number;
@@ -36,8 +36,8 @@ export default function ArosPage() {
       setLoading(true);
       setError('');
 
-      // ✅ Agregar paginación para aprovechar el caché de la API
-      const url = `/api/productos?categoria=${encodeURIComponent(CATEGORIA)}&page=1&limit=12`;
+      // ✅ Cambiamos el límite a 100 para que carguen todos los productos
+      const url = `/api/productos?categoria=${encodeURIComponent(CATEGORIA)}&page=1&limit=100`;
 
       const response = await fetch(url);
       
@@ -47,7 +47,6 @@ export default function ArosPage() {
 
       const json = await response.json();
       
-      // ✅ Leer la propiedad 'data' de la nueva estructura de respuesta
       setProductos(json.data || []);
     } catch (error) {
       console.error('Error cargando productos:', error);
@@ -128,7 +127,6 @@ export default function ArosPage() {
                     <p className="text-gray-400 text-sm font-light mb-2 line-clamp-1">{producto.descripcion}</p>
                     <div className="flex items-center justify-between mt-2">
                       <div>
-                        {/* ✅ Lógica para mostrar precio con oferta */}
                         {producto.precio_oferta ? (
                           <>
                             <p className="text-gray-400 text-sm line-through">
@@ -148,7 +146,6 @@ export default function ArosPage() {
                       <button
                         onClick={(e) => {
                           e.preventDefault();
-                          // ✅ Se pasa el precio de oferta si existe, o el normal si no
                           const precioACobrar = producto.precio_oferta ?? producto.precio;
                           handleAgregarAlCarrito(producto.id, producto.nombre, precioACobrar);
                         }}
