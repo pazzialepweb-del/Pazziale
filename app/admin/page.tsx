@@ -39,6 +39,8 @@ export default function AdminPage() {
   const [esAdmin, setEsAdmin] = useState(false);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [filtroCategoria, setFiltroCategoria] = useState<string>('Todos'); // ✅ Nuevo estado para el filtro
+  
   const [modalProductoOpen, setModalProductoOpen] = useState(false);
   const [modalPedidoOpen, setModalPedidoOpen] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
@@ -70,6 +72,13 @@ export default function AdminPage() {
     verificarAdmin();
   }, []);
 
+  // ✅ Efecto para cargar productos cuando cambia el filtro de categoría
+  useEffect(() => {
+    if (esAdmin) {
+      cargarProductos();
+    }
+  }, [filtroCategoria]);
+
   async function verificarAdmin() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -84,7 +93,8 @@ export default function AdminPage() {
       if (perfil?.rol !== 'admin') return router.push('/tienda');
 
       setEsAdmin(true);
-      cargarDatos();
+      setLoading(false);
+      await Promise.all([cargarProductos(), cargarPedidos()]); // Cargar ambos al iniciar
     } catch (error) {
       console.error('Error verificando admin:', error);
       router.push('/auth/login');
@@ -93,19 +103,25 @@ export default function AdminPage() {
     }
   }
 
-  async function cargarDatos() {
-    // Cargar productos
+  // ✅ Función separada para cargar solo productos
+  async function cargarProductos() {
     try {
-      const { data: productosData, error: productosError } = await supabase
-        .from('productos')
-        .select('*');
+      let query = supabase.from('productos').select('*');
+      
+      if (filtroCategoria !== 'Todos') {
+        query = query.eq('categoria', filtroCategoria);
+      }
+
+      const { data: productosData, error: productosError } = await query;
       if (productosError) throw productosError;
       setProductos(productosData || []);
     } catch (error) {
       console.error('Error cargando productos:', error);
     }
+  }
 
-    // Cargar pedidos
+  // ✅ Función separada para cargar pedidos
+  async function cargarPedidos() {
     try {
       const { data: pedidosData, error: pedidosError } = await supabase
         .from('pedidos')
@@ -174,7 +190,7 @@ export default function AdminPage() {
         if (error) throw error;
       }
 
-      await cargarDatos();
+      await cargarProductos();
       cerrarModalProducto();
     } catch (error) {
       console.error('💥 Error completo guardando producto:', error);
@@ -203,7 +219,7 @@ export default function AdminPage() {
         }
       }
 
-      await cargarDatos();
+      await cargarProductos();
     } catch (error) {
       console.error('Error eliminando producto:', error);
       alert('Error al eliminar producto');
@@ -309,7 +325,7 @@ export default function AdminPage() {
         throw new Error('No se pudo actualizar el pedido. Es posible que el ID no sea válido.');
       }
 
-      await cargarDatos();
+      await cargarPedidos();
       cerrarModalPedido();
       router.refresh();
     } catch (error) {
@@ -322,12 +338,10 @@ export default function AdminPage() {
     }
   }
 
-    // ✅ FUNCIÓN MEJORADA: Eliminar pedido
-    async function handleEliminarPedido(id: string) {
+  async function handleEliminarPedido(id: string) {
     if (!confirm('¿Estás seguro de que quieres eliminar este pedido?')) return;
 
     try {
-      // 1. Verificar si el pedido existe antes de eliminarlo (para diagnóstico)
       const { data: exists, error: existsError } = await supabase
         .from('pedidos')
         .select('id')
@@ -336,12 +350,10 @@ export default function AdminPage() {
 
       if (existsError || !exists) {
         console.warn('⚠️ El pedido con ID:', id, 'ya no existe en la base de datos.');
-        // Actualizar la lista local para reflejar que ya no está
         setPedidos(prev => prev.filter(p => p.id !== id));
         return;
       }
 
-      // 2. Eliminar el pedido
       const { error } = await supabase
         .from('pedidos')
         .delete()
@@ -352,11 +364,8 @@ export default function AdminPage() {
         throw error;
       }
 
-      // 3. Actualizar el estado local inmediatamente para que la UI reaccione
       setPedidos(prev => prev.filter(p => p.id !== id));
-
-      // 4. Recargar datos desde la base de datos para estar sincronizados
-      await cargarDatos();
+      await cargarPedidos();
       console.log('✅ Datos recargados correctamente');
 
     } catch (error) {
@@ -374,6 +383,9 @@ export default function AdminPage() {
       default: return 'bg-gray-500/20 text-gray-400 border-gray-400';
     }
   };
+
+  // ✅ Obtener categorías únicas para el filtro
+  const categoriasFiltro = ['Todos', ...new Set(productos.map(p => p.categoria))];
 
   if (loading) return (
     <div className="min-h-screen bg-[#1E1E1E] text-white">
@@ -460,7 +472,6 @@ export default function AdminPage() {
                     >
                       <Edit className="w-4 h-4" />
                     </button>
-                    {/* ✅ NUEVO BOTÓN: Eliminar pedido */}
                     <button
                       onClick={() => handleEliminarPedido(pedido.id)}
                       className="p-2 bg-red-500/20 hover:bg-red-500/40 rounded-lg transition-colors text-red-400"
@@ -480,6 +491,24 @@ export default function AdminPage() {
 
         {/* --- LISTA DE PRODUCTOS --- */}
         <h2 className="text-2xl font-serif mb-4 text-[#EC4899]">Gestión de Productos</h2>
+        
+        {/* ✅ NUEVOS FILTROS DE CATEGORÍA */}
+        <div className="flex flex-wrap justify-center gap-3 mb-6">
+          {categoriasFiltro.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setFiltroCategoria(cat)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                filtroCategoria === cat
+                  ? 'bg-[#EC4899] text-white'
+                  : 'border border-gray-600 text-gray-400 hover:border-[#EC4899] hover:text-[#EC4899]'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
         <div className="overflow-x-auto bg-[#2D2D2D] rounded-lg border border-[#F59E0B]/30">
           <table className="w-full border-collapse">
             <thead>
@@ -533,7 +562,7 @@ export default function AdminPage() {
             </tbody>
           </table>
           {productos.length === 0 && (
-            <div className="text-center py-12 text-gray-400">No hay productos registrados.</div>
+            <div className="text-center py-12 text-gray-400">No hay productos en esta categoría.</div>
           )}
         </div>
       </div>
