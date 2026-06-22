@@ -127,13 +127,13 @@ export default function CarritoPage() {
 
       const preference = await response.json();
 
-      // 4. Redirigir al usuario a Mercado Pago
-      if (preference.sandbox_init_point) {
-        // Para entorno de pruebas (Sandbox)
-        window.location.href = preference.sandbox_init_point;
-      } else if (preference.init_point) {
-        // Para entorno de producción
+      // ✅ 4. Redirigir al usuario a Mercado Pago (Solo Producción Real)
+      // Prioridad absoluta al init_point (producción)
+      if (preference.init_point) {
         window.location.href = preference.init_point;
+      } else if (preference.sandbox_init_point) {
+        // Fallback (solo si el init_point no existe, que es raro en producción)
+        window.location.href = preference.sandbox_init_point;
       } else {
         throw new Error('No se pudo obtener el enlace de pago');
       }
