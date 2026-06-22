@@ -1,5 +1,6 @@
-import '@/app/globals.css';  // ✅ Esta línea es la que falta
+import '@/app/globals.css';
 import { CarritoProvider } from '@/context/CarritoContext';
+import { GoogleAnalytics } from '@next/third-parties/google';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -8,6 +9,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <CarritoProvider>
           {children}
         </CarritoProvider>
+        <GoogleAnalytics gaId="G-HGRCMVCBBL" />
       </body>
     </html>
   );
