@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { ShoppingCart, Loader2, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer'; // 👈 Importa el nuevo Footer
+import Footer from '@/components/Footer';
 import { useCarrito } from '@/context/CarritoContext';
 
 interface Producto {
@@ -25,7 +25,7 @@ export default function TiendaPage() {
   const [error, setError] = useState('');
   const [mensajeExito, setMensajeExito] = useState<string | null>(null);
 
-  const { items, agregarAlCarrito } = useCarrito(); // 👈 Agregamos 'items'
+  const { items, agregarAlCarrito } = useCarrito();
 
   const categorias = ['Todos', 'Aros', 'Anillos', 'Pulseras', 'Collares', 'Accesorios'];
 
@@ -37,16 +37,12 @@ export default function TiendaPage() {
     try {
       setLoading(true);
       setError('');
-
       let url = '/api/productos?page=1&limit=100';
       if (categoriaSeleccionada !== 'Todos') {
         let categoriaApi = categoriaSeleccionada;
-        if (categoriaSeleccionada === 'Aros') {
-          categoriaApi = 'Pendientes';
-        }
+        if (categoriaSeleccionada === 'Aros') categoriaApi = 'Pendientes';
         url += `&categoria=${encodeURIComponent(categoriaApi)}`;
       }
-
       const response = await fetch(url);
       if (!response.ok) throw new Error('Error al cargar los productos');
       const json = await response.json();
@@ -59,29 +55,22 @@ export default function TiendaPage() {
     }
   }
 
-  // ✅ Nueva función con validación de stock
   const handleAgregarAlCarrito = (productoId: string, nombreProducto: string, precio: number, stockActual: number) => {
     try {
-      // 1. Buscar si el producto ya está en el carrito
       const itemEnCarrito = items.find(item => item.id === productoId);
       const cantidadActual = itemEnCarrito ? itemEnCarrito.cantidad : 0;
-
-      // 2. Verificar si la cantidad actual ya supera el stock disponible
       if (cantidadActual >= stockActual) {
         alert(`⚠️ Solo hay ${stockActual} unidades disponibles de "${nombreProducto}".`);
         return;
       }
-
-      // 3. Agregar al carrito
       const fullProducto = productos.find(p => p.id === productoId);
       if (fullProducto) {
-        // ✅ Aquí está la corrección: Ahora pasamos el stock al contexto
         agregarAlCarrito({
           id: fullProducto.id,
           nombre: fullProducto.nombre,
           precio: precio,
           imagen_url: fullProducto.imagen_url,
-          stock: fullProducto.stock // ✅ IMPORTANTE: Se agregó esta línea
+          stock: fullProducto.stock // ✅ AQUÍ ESTÁ
         });
         setMensajeExito(`✅ ${nombreProducto} agregado al carrito`);
         setTimeout(() => setMensajeExito(null), 3000);
@@ -90,7 +79,6 @@ export default function TiendaPage() {
       console.error('Error al agregar producto:', error);
     }
   };
-
 
   return (
     <div className="min-h-screen bg-[#1E1E1E] text-white">
@@ -105,17 +93,15 @@ export default function TiendaPage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-serif mb-4 text-white">Nuestra <span className="text-[#EC4899]">Colección</span></h1>
-            <p className="text-gray-400 max-w-2xl mx-auto font-light">Cada pieza está hecha a mano...</p>
+            <p className="text-gray-400 max-w-2xl mx-auto font-light">Cada pieza está hecha a mano con dedicación y amor por el arte joyero.</p>
           </div>
-
           <div className="flex flex-wrap justify-center gap-4 mb-12">
-            {categorias.map((categoria) => (
-              <button key={categoria} onClick={() => setCategoriaSeleccionada(categoria)} className={`px-6 py-2 rounded-full transition-all ${
-                categoriaSeleccionada === categoria ? 'bg-[#EC4899] text-white' : 'border border-[#F59E0B]/50 text-gray-400 hover:border-[#EC4899] hover:text-[#EC4899]'
-              }`}>{categoria}</button>
+            {categorias.map((cat) => (
+              <button key={cat} onClick={() => setCategoriaSeleccionada(cat)} className={`px-6 py-2 rounded-full transition-all ${categoriaSeleccionada === cat ? 'bg-[#EC4899] text-white' : 'border border-[#F59E0B]/50 text-gray-400 hover:border-[#EC4899] hover:text-[#EC4899]'}`}>
+                {cat}
+              </button>
             ))}
           </div>
-
           {loading ? (
             <div className="flex justify-center items-center h-64"><Loader2 className="w-12 h-12 animate-spin text-[#EC4899]" /></div>
           ) : error ? (
@@ -146,17 +132,10 @@ export default function TiendaPage() {
                       )}
                       <p className="text-xs text-gray-500">Stock: {producto.stock}</p>
                     </div>
-                    {/* ✅ Botón con la nueva validación */}
                     <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        const precioACobrar = producto.precio_oferta ?? producto.precio;
-                        handleAgregarAlCarrito(producto.id, producto.nombre, precioACobrar, producto.stock);
-                      }}
+                      onClick={(e) => { e.preventDefault(); const precioACobrar = producto.precio_oferta ?? producto.precio; handleAgregarAlCarrito(producto.id, producto.nombre, precioACobrar, producto.stock); }}
                       disabled={producto.stock === 0}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-colors text-sm ${
-                        producto.stock === 0 ? 'bg-gray-600 text-gray-400 cursor-not-allowed' : 'bg-[#EC4899] text-white hover:bg-[#F59E0B]'
-                      }`}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-colors text-sm ${producto.stock === 0 ? 'bg-gray-600 text-gray-400 cursor-not-allowed' : 'bg-[#EC4899] text-white hover:bg-[#F59E0B]'}`}
                     >
                       <ShoppingCart className="w-4 h-4" />
                       {producto.stock === 0 ? 'Sin stock' : 'Agregar'}
@@ -171,7 +150,6 @@ export default function TiendaPage() {
           )}
         </div>
       </section>
-      {/* ✅ Usamos el nuevo componente Footer */}
       <Footer />
     </div>
   );
