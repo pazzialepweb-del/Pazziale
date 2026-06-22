@@ -9,6 +9,71 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
+// 🗺️ Datos de regiones y comunas (para pruebas - EN PRODUCCIÓN USA LA API)
+// 🔥 IMPORTANTE: En producción, reemplaza esto con la API real de Chilexpress
+const regiones = [
+  { id: '01', nombre: 'Región de Arica y Parinacota' },
+  { id: '02', nombre: 'Región de Tarapacá' },
+  { id: '03', nombre: 'Región de Antofagasta' },
+  { id: '04', nombre: 'Región de Atacama' },
+  { id: '05', nombre: 'Región de Coquimbo' },
+  { id: '06', nombre: 'Región de Valparaíso' },
+  { id: '07', nombre: 'Región Metropolitana de Santiago' },
+  { id: '08', nombre: 'Región de O\'Higgins' },
+  { id: '09', nombre: 'Región del Maule' },
+  { id: '10', nombre: 'Región de Ñuble' },
+  { id: '11', nombre: 'Región del Biobío' },
+  { id: '12', nombre: 'Región de La Araucanía' },
+  { id: '13', nombre: 'Región de Los Ríos' },
+  { id: '14', nombre: 'Región de Los Lagos' },
+  { id: '15', nombre: 'Región de Aysén' },
+  { id: '16', nombre: 'Región de Magallanes' },
+];
+
+// 📌 Comunidades por región (códigos reales de Chilexpress)
+const comunasPorRegion: Record<string, { nombre: string; codigo: string }[]> = {
+  '01': [
+    { nombre: 'Arica', codigo: 'ARICA' },
+    { nombre: 'Camarones', codigo: 'CAMARONES' },
+    { nombre: 'General Lagos', codigo: 'GENERAL_LAGOS' },
+    { nombre: 'Putre', codigo: 'PUTRE' },
+  ],
+  '07': [
+    { nombre: 'Providencia', codigo: 'PROV' },
+    { nombre: 'Santiago', codigo: 'SANTIAGO' },
+    { nombre: 'Las Condes', codigo: 'LAS_CONDES' },
+    { nombre: 'Ñuñoa', codigo: 'NUNOA' },
+    { nombre: 'La Reina', codigo: 'LA_REINA' },
+    { nombre: 'Vitacura', codigo: 'VITACURA' },
+    { nombre: 'Lo Barnechea', codigo: 'LO_BARNECHEA' },
+    { nombre: 'Peñalolén', codigo: 'PENALOLEN' },
+    { nombre: 'Macul', codigo: 'MACUL' },
+    { nombre: 'San Miguel', codigo: 'SAN_MIGUEL' },
+    { nombre: 'La Florida', codigo: 'LA_FLORIDA' },
+    { nombre: 'Puente Alto', codigo: 'PUENTE_ALTO' },
+    { nombre: 'Maipú', codigo: 'MAIPU' },
+    { nombre: 'Estación Central', codigo: 'ESTACION_CENTRAL' },
+    { nombre: 'Quilicura', codigo: 'QUILICURA' },
+    { nombre: 'Renca', codigo: 'RENCA' },
+    { nombre: 'Independencia', codigo: 'INDEPENDENCIA' },
+    { nombre: 'Recoleta', codigo: 'RECOLETA' },
+    { nombre: 'Huechuraba', codigo: 'HUECHURABA' },
+    { nombre: 'Conchalí', codigo: 'CONCHALI' },
+    { nombre: 'Quinta Normal', codigo: 'QUINTA_NORMAL' },
+    { nombre: 'Cerro Navia', codigo: 'CERRO_NAVIA' },
+    { nombre: 'Lo Prado', codigo: 'LO_PRADO' },
+    { nombre: 'Pudahuel', codigo: 'PUDAHUEL' },
+  ],
+  '09': [
+    { nombre: 'Talca', codigo: 'TALCA' },
+    { nombre: 'Curicó', codigo: 'CURICO' },
+    { nombre: 'Linares', codigo: 'LINARES' },
+    { nombre: 'San Javier', codigo: 'SAN_JAVIER' },
+  ],
+  // 🔥 Agrega más regiones según necesites
+  // La lista completa la puedes obtener desde la API de Chilexpress
+};
+
 export default function CarritoPage() {
   const { 
     items, 
@@ -47,7 +112,28 @@ export default function CarritoPage() {
     email: ''
   });
 
+  // 🆕 Estado para región y comuna
+  const [regionSeleccionada, setRegionSeleccionada] = useState('07'); // RM por defecto
+  const [comunaSeleccionada, setComunaSeleccionada] = useState('PROV'); // Providencia por defecto
   const [destinoCodigo, setDestinoCodigo] = useState('PROV');
+
+  // 🆕 Cuando cambia la región, seleccionar la primera comuna automáticamente
+  useEffect(() => {
+    if (regionSeleccionada && comunasPorRegion[regionSeleccionada]) {
+      const primeraComuna = comunasPorRegion[regionSeleccionada][0];
+      if (primeraComuna) {
+        setComunaSeleccionada(primeraComuna.codigo);
+        setDestinoCodigo(primeraComuna.codigo);
+      }
+    }
+  }, [regionSeleccionada]);
+
+  // 🆕 Cuando el usuario cambia la comuna manualmente
+  const handleComunaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const codigo = e.target.value;
+    setComunaSeleccionada(codigo);
+    setDestinoCodigo(codigo);
+  };
 
   useEffect(() => {
     const checkUser = async () => {
@@ -61,9 +147,10 @@ export default function CarritoPage() {
     setHydrated(true);
   }, []);
 
-  // Efecto para cotizar Chilexpress
+  // 🆕 Efecto para cotizar Chilexpress (se dispara al cambiar comuna, peso o método)
   useEffect(() => {
     const cotizarChilexpress = async () => {
+      // Solo cotizar si está seleccionado Chilexpress
       if (shippingOption !== 'chilexpress') {
         setChilexpressCost(null);
         setCotizacionError(null);
@@ -76,6 +163,13 @@ export default function CarritoPage() {
         return;
       }
 
+      // Si no hay comuna seleccionada, mostrar error
+      if (!destinoCodigo) {
+        setCotizacionError('Selecciona una comuna de destino');
+        setChilexpressCost(null);
+        return;
+      }
+
       setCotizando(true);
       setCotizacionError(null);
       try {
@@ -83,8 +177,8 @@ export default function CarritoPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            originCountyCode: 'STGO',
-            destinationCountyCode: destinoCodigo,
+            originCountyCode: 'STGO',        // Origen fijo: Santiago
+            destinationCountyCode: destinoCodigo, // Código de la comuna seleccionada
             weight: pesoTotal.toString(),
             height: '1',
             width: '1',
@@ -99,7 +193,6 @@ export default function CarritoPage() {
         const data = await res.json();
 
         if (!res.ok) {
-          // Extraer mensaje de error de la respuesta
           const errorMsg = data.error || data.message || 'Error al cotizar envío';
           throw new Error(errorMsg);
         }
@@ -108,9 +201,9 @@ export default function CarritoPage() {
         const costo = data.rate || data.total || data.price || data.costo || null;
         if (costo && costo > 0) {
           setChilexpressCost(costo);
+          setCotizacionError(null);
         } else {
-          // Si no hay costo, lanzar error con mensaje de la API o genérico
-          throw new Error(data.error || 'No se encontró tarifa para la comuna ingresada');
+          throw new Error(data.error || 'No se encontró tarifa para la comuna seleccionada');
         }
       } catch (error: any) {
         console.error('Error cotizando Chilexpress:', error);
@@ -357,7 +450,7 @@ export default function CarritoPage() {
                   <span>{pesoTotal.toFixed(2)} kg</span>
                 </div>
 
-                {/* ✅ Selector de Envío */}
+                {/* ✅ Selector de Envío con Región y Comuna */}
                 <div className="border-t border-[#F59E0B]/30 my-4 pt-4">
                   <p className="text-sm font-medium mb-2 text-[#F59E0B]">Método de envío:</p>
                   <div className="flex flex-col gap-2">
@@ -391,20 +484,42 @@ export default function CarritoPage() {
                       )}
                     </label>
                   </div>
-                  {/* Campo para código de comuna destino */}
+
+                  {/* 🆕 Selectores de Región y Comuna (solo para Chilexpress) */}
                   {shippingOption === 'chilexpress' && (
-                    <div className="mt-2">
-                      <label className="text-xs text-gray-400">Código de comuna destino:</label>
-                      <input
-                        type="text"
-                        value={destinoCodigo}
-                        onChange={(e) => setDestinoCodigo(e.target.value.toUpperCase())}
-                        className="w-full p-1 rounded bg-[#1E1E1E] border border-gray-600 text-white text-sm mt-1"
-                        placeholder="Ej: PROV, SANTIAGO"
-                      />
-                      <p className="text-[10px] text-gray-500 mt-1">
-                        Usa PROV para Providencia (entorno de pruebas)
-                      </p>
+                    <div className="mt-2 space-y-2">
+                      <div>
+                        <label className="text-xs text-gray-400">Región:</label>
+                        <select
+                          value={regionSeleccionada}
+                          onChange={(e) => setRegionSeleccionada(e.target.value)}
+                          className="w-full p-1 rounded bg-[#1E1E1E] border border-gray-600 text-white text-sm mt-1"
+                        >
+                          {regiones.map(region => (
+                            <option key={region.id} value={region.id}>
+                              {region.nombre}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400">Comuna:</label>
+                        <select
+                          value={comunaSeleccionada}
+                          onChange={handleComunaChange}
+                          className="w-full p-1 rounded bg-[#1E1E1E] border border-gray-600 text-white text-sm mt-1"
+                          disabled={!comunasPorRegion[regionSeleccionada] || comunasPorRegion[regionSeleccionada].length === 0}
+                        >
+                          {comunasPorRegion[regionSeleccionada]?.map(comuna => (
+                            <option key={comuna.codigo} value={comuna.codigo}>
+                              {comuna.nombre}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="text-[10px] text-gray-500 mt-1">
+                          Código: {destinoCodigo}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -435,6 +550,7 @@ export default function CarritoPage() {
                   setCheckoutOpen(true);
                 }}
                 className="w-full bg-[#EC4899] text-white py-3 rounded-lg font-medium hover:bg-[#F59E0B] transition-colors mt-4"
+                disabled={shippingOption === 'chilexpress' && (cotizando || chilexpressCost === null)}
               >
                 Finalizar compra
               </button>
