@@ -2,7 +2,8 @@
 
 import { useCarrito } from '@/context/CarritoContext';
 import Navbar from '@/components/Navbar';
-import { Trash2, Plus, Minus, ShoppingBag, X, Loader2 } from 'lucide-react';
+import Footer from '@/components/Footer';
+import { Trash2, Minus, ShoppingBag, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -19,13 +20,25 @@ export default function CarritoPage() {
     vaciarCarrito 
   } = useCarrito();
 
+  // 🚚 Estado para el envío
+  const [shippingOption, setShippingOption] = useState<'starken' | 'chilexpress' | null>(null);
+  // Costo fijo de Starken (puedes también hacerlo dinámico si quieres)
+  const starkenCost = 5000;
+  // Costo de Chilexpress se obtendrá dinámicamente
+  const [chilexpressCost, setChilexpressCost] = useState<number | null>(null);
+  const [cotizando, setCotizando] = useState(false);
+  const [cotizacionError, setCotizacionError] = useState<string | null>(null);
+
+  // Obtener costo de envío según opción seleccionada
+  const shippingCost = shippingOption === 'starken' ? starkenCost : (shippingOption === 'chilexpress' ? (chilexpressCost || 0) : 0);
+  const totalConEnvio = totalPrecio + shippingCost;
+
   const [hydrated, setHydrated] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [procesando, setProcesando] = useState(false);
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
 
-  // Estado del formulario de checkout
   const [form, setForm] = useState({
     nombre: '',
     direccion: '',
@@ -33,7 +46,12 @@ export default function CarritoPage() {
     email: ''
   });
 
-  // Verificar usuario al cargar
+  // Para la dirección, extraemos posible comuna (opcional)
+  // Podrías pedir al usuario que seleccione su comuna para enviar a Chilexpress
+  // Aquí simplificamos y usamos un código fijo para pruebas (por ejemplo 'PROV' para Providencia)
+  // En producción deberías tener un selector de comunas o usar la dirección para geocodificar.
+  const [destinoCodigo, setDestinoCodigo] = useState('PROV'); // Código de comuna destino
+
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -46,26 +64,86 @@ export default function CarritoPage() {
     setHydrated(true);
   }, []);
 
+  // Efecto para cotizar Chilexpress cuando se selecciona y cambia el destino o el peso
+  useEffect(() => {
+    const cotizarChilexpress = async () => {
+      if (shippingOption !== 'chilexpress') {
+        setChilexpressCost(null);
+        setCotizacionError(null);
+        return;
+      }
+
+      // Calcular peso total del carrito (asumimos que cada producto tiene peso, o usamos peso fijo)
+      // Por simplicidad, usamos la cantidad de items como peso (o podrías sumar un peso por producto)
+      const pesoTotal = items.reduce((acc, item) => acc * item.cantidad, 0);
+      // Si no tienes peso en los productos, usa un valor por defecto (ej: 1 kg por producto)
+      // const pesoTotal = items.reduce((acc, item) => acc + 1 * item.cantidad, 0);
+
+      setCotizando(true);
+      setCotizacionError(null);
+      try {
+        const res = await fetch('/api/cotizar-envio', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            destinoCodigo,
+            pesoTotal: pesoTotal || 1, // mínimo 1 kg
+          }),
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || 'Error al cotizar envío');
+        }
+
+        const data = await res.json();
+        if (data.costo) {
+          setChilexpressCost(data.costo);
+        } else {
+          throw new Error('No se obtuvo costo de envío');
+        }
+      } catch (error: any) {
+        console.error('Error cotizando Chilexpress:', error);
+        setCotizacionError(error.message || 'Error al obtener cotización');
+        setChilexpressCost(null);
+      } finally {
+        setCotizando(false);
+      }
+    };
+
+    cotizarChilexpress();
+  }, [shippingOption, destinoCodigo, items]); // Se re-ejecuta si cambia la opción, el destino o el carrito
+
   const handleMercadoPagoCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setProcesando(true);
 
     try {
-      // Verificar que el usuario esté logueado
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push('/auth/login');
         return;
       }
 
-      // Validar que el formulario esté completo
       if (!form.nombre || !form.direccion || !form.telefono || !form.email) {
         alert('Por favor, completa todos los datos de envío.');
         setProcesando(false);
         return;
       }
 
-      // Crear el objeto con los items del carrito para guardar en JSON
+      if (!shippingOption) {
+        alert('Por favor, selecciona un método de envío.');
+        setProcesando(false);
+        return;
+      }
+
+      // Si es Chilexpress y no tenemos costo, evitar continuar
+      if (shippingOption === 'chilexpress' && (chilexpressCost === null || chilexpressCost === 0)) {
+        alert('El costo de envío por Chilexpress aún no está disponible. Intenta de nuevo.');
+        setProcesando(false);
+        return;
+      }
+
       const itemsData = items.map(item => ({
         producto_id: item.id,
         nombre: item.nombre,
@@ -74,8 +152,9 @@ export default function CarritoPage() {
         imagen_url: item.imagen_url
       }));
 
-      // 1. Insertar el pedido en Supabase (Estado inicial: verificando)
-      // El stock se descontará en el webhook cuando Mercado Pago confirme el pago
+      const externalRef = `pedido_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+
+      // 1. Insertar el pedido en Supabase
       const { data: pedidoData, error } = await supabase
         .from('pedidos')
         .insert([{
@@ -84,9 +163,10 @@ export default function CarritoPage() {
           telefono_cliente: form.telefono,
           email_cliente: form.email,
           direccion_envio: form.direccion,
-          total: totalPrecio,
+          total: totalConEnvio,
           estado: 'verificando',
-          items: itemsData
+          items: itemsData,
+          external_reference: externalRef
         }])
         .select();
 
@@ -95,28 +175,40 @@ export default function CarritoPage() {
         throw new Error(`Error al crear el pedido: ${error.message}`);
       }
 
-      // 2. Vaciar el carrito (el stock se actualizará en el webhook)
       vaciarCarrito();
       setCheckoutOpen(false);
+
+      // 2. Crear los items para Mercado Pago
+      const mpItems = items.map(item => ({
+        id: item.id,
+        nombre: item.nombre,
+        cantidad: item.cantidad,
+        precio: item.precio,
+        imagen_url: item.imagen_url,
+      }));
+
+      // Agregar ítem de envío
+      mpItems.push({
+        id: 'shipping',
+        nombre: `Envío ${shippingOption === 'starken' ? 'Starken' : 'Chilexpress'}`,
+        cantidad: 1,
+        precio: shippingCost,
+        imagen_url: '',
+      });
 
       // 3. Crear la preferencia en Mercado Pago
       const response = await fetch('/api/create-preference', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: items.map(item => ({
-            id: item.id,
-            nombre: item.nombre,
-            cantidad: item.cantidad,
-            precio: item.precio,
-            imagen_url: item.imagen_url,
-          })),
+          external_reference: externalRef,
+          items: mpItems,
           payer: {
             nombre: form.nombre,
             email: form.email,
             telefono: form.telefono,
           },
-          total: totalPrecio,
+          total: totalConEnvio,
         }),
       });
 
@@ -127,12 +219,9 @@ export default function CarritoPage() {
 
       const preference = await response.json();
 
-      // ✅ 4. Redirigir al usuario a Mercado Pago (Solo Producción Real)
-      // Prioridad absoluta al init_point (producción)
       if (preference.init_point) {
         window.location.href = preference.init_point;
       } else if (preference.sandbox_init_point) {
-        // Fallback (solo si el init_point no existe, que es raro en producción)
         window.location.href = preference.sandbox_init_point;
       } else {
         throw new Error('No se pudo obtener el enlace de pago');
@@ -231,12 +320,6 @@ export default function CarritoPage() {
                           <Minus className="w-4 h-4" />
                         </button>
                         <span className="w-8 text-center">{item.cantidad}</span>
-                        <button 
-                          onClick={() => actualizarCantidad(item.id, item.cantidad + 1)}
-                          className="p-1 hover:text-[#EC4899] transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
                       </div>
                       <button 
                         onClick={() => eliminarDelCarrito(item.id)}
@@ -261,14 +344,68 @@ export default function CarritoPage() {
                   <span>Productos ({totalItems})</span>
                   <span>${totalPrecio.toLocaleString()}</span>
                 </div>
+
+                {/* ✅ Selector de Envío */}
+                <div className="border-t border-[#F59E0B]/30 my-4 pt-4">
+                  <p className="text-sm font-medium mb-2 text-[#F59E0B]">Método de envío:</p>
+                  <div className="flex flex-col gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors text-gray-400">
+                      <input
+                        type="radio"
+                        name="shipping"
+                        value="starken"
+                        checked={shippingOption === 'starken'}
+                        onChange={() => setShippingOption('starken')}
+                        className="accent-[#EC4899]"
+                      />
+                      Starken (Talca a todo Chile) - ${starkenCost.toLocaleString()}
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors text-gray-400">
+                      <input
+                        type="radio"
+                        name="shipping"
+                        value="chilexpress"
+                        checked={shippingOption === 'chilexpress'}
+                        onChange={() => setShippingOption('chilexpress')}
+                        className="accent-[#EC4899]"
+                      />
+                      Chilexpress (cotización en tiempo real)
+                      {cotizando && <Loader2 className="w-4 h-4 animate-spin inline ml-1" />}
+                      {shippingOption === 'chilexpress' && !cotizando && chilexpressCost !== null && (
+                        <span className="text-white ml-1">- ${chilexpressCost.toLocaleString()}</span>
+                      )}
+                      {cotizacionError && <span className="text-red-400 text-xs ml-1">{cotizacionError}</span>}
+                    </label>
+                  </div>
+                  {/* Si quieres permitir al usuario seleccionar comuna destino (para Chilexpress) */}
+                  {shippingOption === 'chilexpress' && (
+                    <div className="mt-2">
+                      <label className="text-xs text-gray-400">Código de comuna destino:</label>
+                      <input
+                        type="text"
+                        value={destinoCodigo}
+                        onChange={(e) => setDestinoCodigo(e.target.value.toUpperCase())}
+                        className="w-full p-1 rounded bg-[#1E1E1E] border border-gray-600 text-white text-sm mt-1"
+                        placeholder="Ej: PROV"
+                      />
+                      <p className="text-[10px] text-gray-500 mt-1">Ingresa el código de comuna de destino (ej: PROV, SCL, etc.)</p>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex justify-between">
                   <span>Envío</span>
-                  <span>Calculado al pagar</span>
+                  <span>
+                    {shippingOption 
+                      ? `$${shippingCost.toLocaleString()}` 
+                      : 'Selecciona uno'}
+                  </span>
                 </div>
+
                 <div className="border-t border-[#F59E0B]/30 my-4 pt-4">
                   <div className="flex justify-between text-xl text-white font-medium">
                     <span>Total</span>
-                    <span>${totalPrecio.toLocaleString()}</span>
+                    <span>${totalConEnvio.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -369,6 +506,8 @@ export default function CarritoPage() {
           </div>
         </div>
       )}
+
+      <Footer />
     </div>
   );
 }

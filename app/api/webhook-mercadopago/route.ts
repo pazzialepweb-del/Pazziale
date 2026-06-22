@@ -13,10 +13,9 @@ export async function POST(request: Request) {
 
     console.log('📩 Webhook recibido:', { type, data });
 
-    // ✅ SEGURIDAD ACTIVADA: Verificar la firma de Mercado Pago
+    // Seguridad
     const xSignature = request.headers.get('x-signature');
     const xRequestId = request.headers.get('x-request-id');
-    
     if (xSignature && MERCADOPAGO_WEBHOOK_SECRET) {
       const parts = xSignature.split(',');
       let ts = '', hash = '';
@@ -25,17 +24,14 @@ export async function POST(request: Request) {
         if (key === 'ts') ts = value;
         if (key === 'v1') hash = value;
       });
-
       const manifest = `${data.id}${xRequestId}${ts}`;
       const hmac = crypto.createHmac('sha256', MERCADOPAGO_WEBHOOK_SECRET);
       hmac.update(manifest);
       const calculatedHash = hmac.digest('hex');
-
       if (calculatedHash !== hash) {
         console.warn('⛔️ Firma inválida en el webhook, ignorando petición.');
         return NextResponse.json({ received: false }, { status: 200 });
       }
-      console.log('✅ Firma verificada correctamente.');
     }
 
     if (type !== 'payment') return NextResponse.json({ received: true }, { status: 200 });
@@ -50,14 +46,8 @@ export async function POST(request: Request) {
     if (!mpResponse.ok) throw new Error('Error al consultar el pago en Mercado Pago');
 
     const paymentData = await mpResponse.json();
-    console.log('💳 Detalle del pago MP:', {
-      id: paymentData.id,
-      status: paymentData.status,
-      status_detail: paymentData.status_detail,
-      external_reference: paymentData.external_reference,
-    });
-
     const externalRef = paymentData.external_reference;
+    console.log('💳 Pago aprobado. Buscando pedido con external_reference:', externalRef);
 
     let estadoTienda = 'verificando';
     let pagado = false;
@@ -66,7 +56,7 @@ export async function POST(request: Request) {
       estadoTienda = 'pagado';
       pagado = true;
 
-      // 1. Obtener el pedido completo para tener los items
+      // 1. Obtener el pedido completo desde Supabase
       const { data: pedidoCompleto, error: pedidoError } = await supabase
         .from('pedidos')
         .select('items')
@@ -74,27 +64,35 @@ export async function POST(request: Request) {
         .single();
 
       if (pedidoError || !pedidoCompleto) {
-        console.error('❌ Error al obtener los items del pedido para descontar stock:', pedidoError);
-      } else {
-        const itemsDelPedido = pedidoCompleto.items;
-        if (itemsDelPedido && Array.isArray(itemsDelPedido)) {
-          for (const item of itemsDelPedido) {
-            const { data: currentProduct } = await supabase
-              .from('productos')
-              .select('stock')
-              .eq('id', item.producto_id)
-              .single();
+        console.error('❌ Error al buscar el pedido en Supabase:', pedidoError, 'ExternalRef:', externalRef);
+        throw new Error(`Pedido no encontrado o error en BD: ${pedidoError?.message || 'No data'}`);
+      }
 
-            if (currentProduct) {
-              const nuevoStock = Math.max(0, currentProduct.stock - item.cantidad);
-              await supabase
-                .from('productos')
-                .update({ stock: nuevoStock })
-                .eq('id', item.producto_id);
-            }
+      console.log('✅ Pedido encontrado. Items:', pedidoCompleto.items);
+
+      // 2. Descontar el stock
+      const itemsDelPedido = pedidoCompleto.items;
+      if (itemsDelPedido && Array.isArray(itemsDelPedido) && itemsDelPedido.length > 0) {
+        for (const item of itemsDelPedido) {
+          const { data: currentProduct } = await supabase
+            .from('productos')
+            .select('stock')
+            .eq('id', item.producto_id)
+            .single();
+
+          if (currentProduct) {
+            const nuevoStock = Math.max(0, currentProduct.stock - item.cantidad);
+            await supabase
+              .from('productos')
+              .update({ stock: nuevoStock })
+              .eq('id', item.producto_id);
+            console.log(`📉 Stock de ${item.nombre} (${item.producto_id}) actualizado a ${nuevoStock}`);
+          } else {
+            console.warn(`⚠️ No se encontró el producto con ID: ${item.producto_id}`);
           }
-          console.log('✅ Stock descontado correctamente.');
         }
+      } else {
+        console.warn('⚠️ El pedido no tiene items o está vacío:', itemsDelPedido);
       }
     } else if (paymentData.status === 'pending') {
       estadoTienda = 'pendiente';
@@ -104,22 +102,7 @@ export async function POST(request: Request) {
       estadoTienda = 'reembolsado';
     }
 
-    if (!externalRef) {
-      console.warn('⚠️ El pago no tiene external_reference, no podemos actualizar el pedido.');
-      return NextResponse.json({ received: true }, { status: 200 });
-    }
-
-    const { data: pedido, error: findError } = await supabase
-      .from('pedidos')
-      .select('id')
-      .eq('external_reference', externalRef)
-      .single();
-
-    if (findError || !pedido) {
-      console.warn('⚠️ No se encontró el pedido con external_reference:', externalRef);
-      return NextResponse.json({ received: true }, { status: 200 });
-    }
-
+    // 3. Actualizar el estado del pedido
     const { error: updateError } = await supabase
       .from('pedidos')
       .update({
@@ -127,19 +110,18 @@ export async function POST(request: Request) {
         pagado: pagado,
         fecha_pago: pagado ? new Date().toISOString() : null,
       })
-      .eq('id', pedido.id);
+      .eq('external_reference', externalRef);
 
     if (updateError) {
-      console.error('❌ Error actualizando el pedido en Supabase:', updateError);
+      console.error('❌ Error actualizando estado del pedido:', updateError);
       throw updateError;
     }
 
-    console.log(`✅ Pedido ${pedido.id} actualizado a estado: ${estadoTienda}`);
-
+    console.log(`✅ Pedido con external_reference ${externalRef} actualizado a estado: ${estadoTienda}`);
     return NextResponse.json({ received: true }, { status: 200 });
 
   } catch (error) {
-    console.error('💥 Error procesando webhook:', error);
+    console.error('💥 Error en el webhook:', error);
     return NextResponse.json({ received: true }, { status: 200 });
   }
 }

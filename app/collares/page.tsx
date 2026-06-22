@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { ShoppingCart, Loader2, CheckCircle } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer'; // ✅ Importamos el Footer modular
 import { useCarrito } from '@/context/CarritoContext';
 import Link from 'next/link';
 
@@ -11,7 +12,7 @@ interface Producto {
   nombre: string;
   descripcion: string;
   precio: number;
-  precio_oferta?: number | null; // ✅ Nuevo campo opcional
+  precio_oferta?: number | null;
   imagen_url: string;
   categoria: string;
   stock: number;
@@ -23,7 +24,8 @@ export default function CollaresPage() {
   const [error, setError] = useState('');
   const [mensajeExito, setMensajeExito] = useState<string | null>(null);
 
-  const { agregarAlCarrito } = useCarrito();
+  // ✅ Traemos 'items' del contexto para consultar el carrito actual
+  const { items, agregarAlCarrito } = useCarrito();
 
   const CATEGORIA = 'Collares';
 
@@ -36,7 +38,6 @@ export default function CollaresPage() {
       setLoading(true);
       setError('');
 
-      // ✅ Agregar paginación para aprovechar el caché de la API
       const url = `/api/productos?categoria=${encodeURIComponent(CATEGORIA)}&page=1&limit=100`;
 
       const response = await fetch(url);
@@ -47,7 +48,6 @@ export default function CollaresPage() {
 
       const json = await response.json();
       
-      // ✅ Leer la propiedad 'data' de la nueva estructura de respuesta
       setProductos(json.data || []);
     } catch (error) {
       console.error('Error cargando productos:', error);
@@ -57,15 +57,29 @@ export default function CollaresPage() {
     }
   }
 
-  const handleAgregarAlCarrito = (productoId: string, nombreProducto: string, precioACobrar: number) => {
+  // ✅ Nueva función con validación de stock en el carrito
+  const handleAgregarAlCarrito = (productoId: string, nombreProducto: string, precio: number, stockActual: number) => {
     try {
+      // 1. Buscar si el producto ya está en el carrito
+      const itemEnCarrito = items.find(item => item.id === productoId);
+      const cantidadActual = itemEnCarrito ? itemEnCarrito.cantidad : 0;
+
+      // 2. Verificar si la cantidad actual ya supera el stock disponible
+      if (cantidadActual >= stockActual) {
+        alert(`⚠️ Solo hay ${stockActual} unidades disponibles de "${nombreProducto}".`);
+        return;
+      }
+
+      // 3. Agregar al carrito
       const fullProducto = productos.find(p => p.id === productoId);
       if (fullProducto) {
+        // ✅ Aquí está la corrección: Ahora pasamos el stock al contexto
         agregarAlCarrito({
           id: fullProducto.id,
           nombre: fullProducto.nombre,
-          precio: precioACobrar, // ✅ Se envía el precio correcto (oferta o normal)
-          imagen_url: fullProducto.imagen_url
+          precio: precio,
+          imagen_url: fullProducto.imagen_url,
+          stock: fullProducto.stock // ✅ IMPORTANTE: Se agregó esta línea
         });
         setMensajeExito(`✅ ${nombreProducto} agregado al carrito`);
         setTimeout(() => setMensajeExito(null), 3000);
@@ -74,6 +88,7 @@ export default function CollaresPage() {
       console.error('Error al agregar producto:', error);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-[#1E1E1E] text-white">
@@ -128,7 +143,6 @@ export default function CollaresPage() {
                     <p className="text-gray-400 text-sm font-light mb-2 line-clamp-1">{producto.descripcion}</p>
                     <div className="flex items-center justify-between mt-2">
                       <div>
-                        {/* ✅ Lógica para mostrar precio con oferta */}
                         {producto.precio_oferta ? (
                           <>
                             <p className="text-gray-400 text-sm line-through">
@@ -145,12 +159,12 @@ export default function CollaresPage() {
                         )}
                         <p className="text-xs text-gray-500">Stock: {producto.stock}</p>
                       </div>
+                      {/* ✅ Botón con la nueva validación */}
                       <button
                         onClick={(e) => {
                           e.preventDefault();
-                          // ✅ Se pasa el precio de oferta si existe, o el normal si no
                           const precioACobrar = producto.precio_oferta ?? producto.precio;
-                          handleAgregarAlCarrito(producto.id, producto.nombre, precioACobrar);
+                          handleAgregarAlCarrito(producto.id, producto.nombre, precioACobrar, producto.stock);
                         }}
                         disabled={producto.stock === 0}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-colors text-sm ${
@@ -181,32 +195,8 @@ export default function CollaresPage() {
         </div>
       </section>
 
-      <footer className="bg-[#1E1E1E] py-16 border-t border-[#EC4899]/20">
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-12">
-          <div>
-             <h4 className="text-2xl font-serif text-[#EC4899] mb-4">Pazziale</h4>
-             <p className="text-gray-400 text-sm">Orfebrería artesanal.</p>
-          </div>
-          <div>
-            <h5 className="font-medium mb-4 text-[#F59E0B]">Contacto</h5>
-            <ul className="space-y-2 text-gray-400 text-sm">
-              <li>contacto@pazziale.cl</li>
-              <li>+56 9 1234 5678</li>
-            </ul>
-          </div>
-          <div>
-            <h5 className="font-medium mb-4 text-[#F59E0B]">Enlaces</h5>
-            <ul className="space-y-2 text-gray-400 text-sm">
-              <li><a href="/" className="hover:text-[#EC4899] transition-colors">Inicio</a></li>
-              <li><a href="/tienda" className="hover:text-[#EC4899] transition-colors">Tienda</a></li>
-              <li><a href="/aros" className="hover:text-[#EC4899] transition-colors">Aros</a></li>
-              <li><a href="/anillos" className="hover:text-[#EC4899] transition-colors">Anillos</a></li>
-              <li><a href="/pulseras" className="hover:text-[#EC4899] transition-colors">Pulseras</a></li>
-              <li><a href="/collares" className="hover:text-[#EC4899] transition-colors">Collares</a></li>
-            </ul>
-          </div>
-        </div>
-      </footer>
+      {/* ✅ Footer reemplazado por el componente */}
+      <Footer />
     </div>
   );
 }

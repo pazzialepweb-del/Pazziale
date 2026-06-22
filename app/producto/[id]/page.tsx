@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer'; // ✅ Importamos el Footer modular
 import { useCarrito } from '@/context/CarritoContext';
 import { ShoppingCart, Loader2, ArrowLeft, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -125,7 +126,8 @@ export default function ProductoPage() {
         id: producto.id,
         nombre: producto.nombre,
         precio: precioFinal, // ✅ Se envía el precio correcto
-        imagen_url: producto.imagen_url
+        imagen_url: producto.imagen_url,
+        stock: producto.stock // ✅ IMPORTANTE: Se agregó el stock aquí
       });
       setMensajeExito(`✅ ${producto.nombre} agregado al carrito`);
       setTimeout(() => setMensajeExito(null), 3000);
@@ -311,29 +313,7 @@ export default function ProductoPage() {
         )}
       </div>
 
-      <footer className="bg-[#1E1E1E] py-16 border-t border-[#EC4899]/20">
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-12">
-          <div>
-             <h4 className="text-2xl font-serif text-[#EC4899] mb-4">Pazziale</h4>
-             <p className="text-gray-400 text-sm">Orfebrería artesanal. Diseño y fabricación propia con pasión.</p>
-          </div>
-          <div>
-            <h5 className="font-medium mb-4 text-[#F59E0B]">Contacto</h5>
-            <ul className="space-y-2 text-gray-400 text-sm">
-              <li>contacto@pazziale.cl</li>
-              <li>+56 9 1234 5678</li>
-            </ul>
-          </div>
-          <div>
-            <h5 className="font-medium mb-4 text-[#F59E0B]">Enlaces</h5>
-            <ul className="space-y-2 text-gray-400 text-sm">
-              <li><a href="/" className="hover:text-[#EC4899] transition-colors">Inicio</a></li>
-              <li><a href="/tienda" className="hover:text-[#EC4899] transition-colors">Tienda</a></li>
-              <li><a href="/taller" className="hover:text-[#EC4899] transition-colors">El Taller</a></li>
-            </ul>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
