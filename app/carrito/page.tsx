@@ -22,14 +22,17 @@ export default function CarritoPage() {
 
   // 🚚 Estado para el envío
   const [shippingOption, setShippingOption] = useState<'starken' | 'chilexpress' | null>(null);
-  // Costo fijo de Starken (puedes también hacerlo dinámico si quieres)
   const starkenCost = 5000;
-  // Costo de Chilexpress se obtendrá dinámicamente
   const [chilexpressCost, setChilexpressCost] = useState<number | null>(null);
   const [cotizando, setCotizando] = useState(false);
   const [cotizacionError, setCotizacionError] = useState<string | null>(null);
 
-  // Obtener costo de envío según opción seleccionada
+  // Peso fijo por producto: 500 gramos = 0.5 kg
+  const PESO_PRODUCTO_KG = 0.5;
+
+  // Calcular peso total en kg
+  const pesoTotal = items.reduce((acc, item) => acc + PESO_PRODUCTO_KG * item.cantidad, 0);
+
   const shippingCost = shippingOption === 'starken' ? starkenCost : (shippingOption === 'chilexpress' ? (chilexpressCost || 0) : 0);
   const totalConEnvio = totalPrecio + shippingCost;
 
@@ -46,10 +49,6 @@ export default function CarritoPage() {
     email: ''
   });
 
-  // Para la dirección, extraemos posible comuna (opcional)
-  // Podrías pedir al usuario que seleccione su comuna para enviar a Chilexpress
-  // Aquí simplificamos y usamos un código fijo para pruebas (por ejemplo 'PROV' para Providencia)
-  // En producción deberías tener un selector de comunas o usar la dirección para geocodificar.
   const [destinoCodigo, setDestinoCodigo] = useState('PROV'); // Código de comuna destino
 
   useEffect(() => {
@@ -64,7 +63,7 @@ export default function CarritoPage() {
     setHydrated(true);
   }, []);
 
-  // Efecto para cotizar Chilexpress cuando se selecciona y cambia el destino o el peso
+  // Efecto para cotizar Chilexpress cuando se selecciona, cambia el destino o cambia el carrito (peso)
   useEffect(() => {
     const cotizarChilexpress = async () => {
       if (shippingOption !== 'chilexpress') {
@@ -73,21 +72,30 @@ export default function CarritoPage() {
         return;
       }
 
-      // Calcular peso total del carrito (asumimos que cada producto tiene peso, o usamos peso fijo)
-      // Por simplicidad, usamos la cantidad de items como peso (o podrías sumar un peso por producto)
-      const pesoTotal = items.reduce((acc, item) => acc * item.cantidad, 0);
-      // Si no tienes peso en los productos, usa un valor por defecto (ej: 1 kg por producto)
-      // const pesoTotal = items.reduce((acc, item) => acc + 1 * item.cantidad, 0);
+      if (items.length === 0 || pesoTotal === 0) {
+        setChilexpressCost(null);
+        setCotizacionError(null);
+        return;
+      }
 
       setCotizando(true);
       setCotizacionError(null);
       try {
-        const res = await fetch('/api/cotizar-envio', {
+        // Llamada a nuestra API Route /api/chilexpress
+        const res = await fetch('/api/chilexpress', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            destinoCodigo,
-            pesoTotal: pesoTotal || 1, // mínimo 1 kg
+            originCountyCode: 'STGO',        // Origen fijo: Santiago
+            destinationCountyCode: destinoCodigo, // Comuna destino
+            weight: pesoTotal.toString(),    // Peso en kg (puede tener decimales)
+            height: '1',
+            width: '1',
+            length: '1',
+            productType: 3,
+            contentType: 1,
+            declaredWorth: totalPrecio.toString(),
+            deliveryTime: 0,
           }),
         });
 
@@ -97,8 +105,10 @@ export default function CarritoPage() {
         }
 
         const data = await res.json();
-        if (data.costo) {
-          setChilexpressCost(data.costo);
+        // La API puede devolver el costo en diferentes campos; ajustamos según lo que retorne tu route
+        const costo = data.rate || data.total || data.price || data.costo || null;
+        if (costo && costo > 0) {
+          setChilexpressCost(costo);
         } else {
           throw new Error('No se obtuvo costo de envío');
         }
@@ -112,7 +122,7 @@ export default function CarritoPage() {
     };
 
     cotizarChilexpress();
-  }, [shippingOption, destinoCodigo, items]); // Se re-ejecuta si cambia la opción, el destino o el carrito
+  }, [shippingOption, destinoCodigo, items, pesoTotal, totalPrecio]);
 
   const handleMercadoPagoCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,7 +147,6 @@ export default function CarritoPage() {
         return;
       }
 
-      // Si es Chilexpress y no tenemos costo, evitar continuar
       if (shippingOption === 'chilexpress' && (chilexpressCost === null || chilexpressCost === 0)) {
         alert('El costo de envío por Chilexpress aún no está disponible. Intenta de nuevo.');
         setProcesando(false);
@@ -154,7 +163,6 @@ export default function CarritoPage() {
 
       const externalRef = `pedido_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
-      // 1. Insertar el pedido en Supabase
       const { data: pedidoData, error } = await supabase
         .from('pedidos')
         .insert([{
@@ -178,7 +186,6 @@ export default function CarritoPage() {
       vaciarCarrito();
       setCheckoutOpen(false);
 
-      // 2. Crear los items para Mercado Pago
       const mpItems = items.map(item => ({
         id: item.id,
         nombre: item.nombre,
@@ -187,7 +194,6 @@ export default function CarritoPage() {
         imagen_url: item.imagen_url,
       }));
 
-      // Agregar ítem de envío
       mpItems.push({
         id: 'shipping',
         nombre: `Envío ${shippingOption === 'starken' ? 'Starken' : 'Chilexpress'}`,
@@ -196,7 +202,6 @@ export default function CarritoPage() {
         imagen_url: '',
       });
 
-      // 3. Crear la preferencia en Mercado Pago
       const response = await fetch('/api/create-preference', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -308,6 +313,7 @@ export default function CarritoPage() {
                             : 'Precio no disponible'
                           }
                         </p>
+                        <p className="text-xs text-gray-500">Peso: ~0.5 kg c/u</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 w-full md:w-auto justify-end">
@@ -343,6 +349,11 @@ export default function CarritoPage() {
                 <div className="flex justify-between">
                   <span>Productos ({totalItems})</span>
                   <span>${totalPrecio.toLocaleString()}</span>
+                </div>
+
+                <div className="flex justify-between text-sm">
+                  <span>Peso total aproximado</span>
+                  <span>{pesoTotal.toFixed(2)} kg</span>
                 </div>
 
                 {/* ✅ Selector de Envío */}
