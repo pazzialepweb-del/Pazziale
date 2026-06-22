@@ -37,32 +37,25 @@ export default function RegisterPage() {
     setError('');
     setSuccess(false);
 
-    // Validación previa
     if (!validarFormulario()) {
       setLoading(false);
       return;
     }
 
+    // ⏱️ Timeout extendido a 25 segundos (más margen para Supabase)
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 25000)
+    );
+
+    // ⏳ Mensaje de espera después de 8 segundos (feedback para el usuario)
+    let loadingTimeout = setTimeout(() => {
+      setError('El registro está tomando más tiempo de lo esperado. Por favor, espera...');
+    }, 8000);
+
     try {
-      // 🔥 TIMEOUT MANUAL: Limitar la espera a 10 segundos
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('timeout')), 10000)
-      );
-
-      // Función que ejecuta el registro y la verificación
+      // Función que ejecuta el registro (sin verificación previa de email)
       const registrarUsuario = async () => {
-        // 1. Verificar si el usuario ya existe (opcional, pero evita el error)
-        const { data: existingUser, error: checkError } = await supabase
-          .from('perfiles')
-          .select('id')
-          .eq('email', email)
-          .maybeSingle();
-
-        if (existingUser) {
-          throw new Error('Usuario ya registrado');
-        }
-
-        // 2. Crear usuario en Supabase Auth
+        // 1. Crear usuario en Supabase Auth (ya no verificamos duplicado antes)
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email,
           password,
@@ -79,7 +72,7 @@ export default function RegisterPage() {
           throw new Error('No se pudo obtener la información del usuario');
         }
 
-        // 3. Insertar el perfil en la tabla "perfiles"
+        // 2. Insertar el perfil en la tabla "perfiles"
         const { error: perfilError } = await supabase
           .from('perfiles')
           .insert([
@@ -101,12 +94,12 @@ export default function RegisterPage() {
       };
 
       // Ejecutar con timeout
-      const resultado = await Promise.race([
+      await Promise.race([
         registrarUsuario(),
         timeoutPromise,
       ]);
 
-      // 4. Éxito
+      // Éxito
       setSuccess(true);
       setTimeout(() => {
         router.push('/auth/login?registered=true');
@@ -121,19 +114,15 @@ export default function RegisterPage() {
       if (error instanceof Error) {
         const mensaje = error.message;
 
-        // Timeout manual
+        // Timeout manual (25 segundos)
         if (mensaje === 'timeout') {
-          mensajeError = 'El servidor no responde. Intenta de nuevo en unos minutos.';
+          mensajeError = 'El servidor está tardando demasiado. Intenta de nuevo en unos minutos. Si el problema persiste, contacta a soporte.';
         }
         // Error de red o fetch
         else if (error instanceof TypeError && mensaje.includes('fetch')) {
           mensajeError = 'Error de conexión. Revisa tu internet o inténtalo más tarde.';
         }
-        // Usuario ya registrado (de nuestra verificación previa)
-        else if (mensaje === 'Usuario ya registrado') {
-          mensajeError = 'Este correo electrónico ya está registrado. ¿Quieres iniciar sesión?';
-        }
-        // Errores de Supabase Auth
+        // Errores de Supabase Auth (usuario duplicado)
         else if (mensaje.includes('User already registered')) {
           mensajeError = 'Este correo ya está registrado. Inicia sesión o recupera tu contraseña.';
         }
@@ -141,7 +130,7 @@ export default function RegisterPage() {
         else if (mensaje.includes('Perfil no creado')) {
           mensajeError = 'El usuario se creó, pero hubo un problema con su perfil. Por favor, contacta al administrador.';
         }
-        // Otros errores de Supabase
+        // Otros errores de Supabase (504, etc.)
         else if (mensaje.includes('status 504') || mensaje.includes('504')) {
           mensajeError = 'El servidor de autenticación está tardando demasiado. Intenta de nuevo en unos minutos.';
         }
@@ -155,6 +144,7 @@ export default function RegisterPage() {
 
       setError(mensajeError);
     } finally {
+      clearTimeout(loadingTimeout); // Limpiar el timeout del mensaje de espera
       setLoading(false);
     }
   };
