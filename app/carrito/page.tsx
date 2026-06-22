@@ -29,8 +29,6 @@ export default function CarritoPage() {
 
   // Peso fijo por producto: 500 gramos = 0.5 kg
   const PESO_PRODUCTO_KG = 0.5;
-
-  // Calcular peso total en kg
   const pesoTotal = items.reduce((acc, item) => acc + PESO_PRODUCTO_KG * item.cantidad, 0);
 
   const shippingCost = shippingOption === 'starken' ? starkenCost : (shippingOption === 'chilexpress' ? (chilexpressCost || 0) : 0);
@@ -49,7 +47,7 @@ export default function CarritoPage() {
     email: ''
   });
 
-  const [destinoCodigo, setDestinoCodigo] = useState('PROV'); // Código de comuna destino
+  const [destinoCodigo, setDestinoCodigo] = useState('PROV');
 
   useEffect(() => {
     const checkUser = async () => {
@@ -63,7 +61,7 @@ export default function CarritoPage() {
     setHydrated(true);
   }, []);
 
-  // Efecto para cotizar Chilexpress cuando se selecciona, cambia el destino o cambia el carrito (peso)
+  // Efecto para cotizar Chilexpress
   useEffect(() => {
     const cotizarChilexpress = async () => {
       if (shippingOption !== 'chilexpress') {
@@ -81,14 +79,13 @@ export default function CarritoPage() {
       setCotizando(true);
       setCotizacionError(null);
       try {
-        // Llamada a nuestra API Route /api/chilexpress
         const res = await fetch('/api/chilexpress', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            originCountyCode: 'STGO',        // Origen fijo: Santiago
-            destinationCountyCode: destinoCodigo, // Comuna destino
-            weight: pesoTotal.toString(),    // Peso en kg (puede tener decimales)
+            originCountyCode: 'STGO',
+            destinationCountyCode: destinoCodigo,
+            weight: pesoTotal.toString(),
             height: '1',
             width: '1',
             length: '1',
@@ -99,18 +96,21 @@ export default function CarritoPage() {
           }),
         });
 
+        const data = await res.json();
+
         if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || 'Error al cotizar envío');
+          // Extraer mensaje de error de la respuesta
+          const errorMsg = data.error || data.message || 'Error al cotizar envío';
+          throw new Error(errorMsg);
         }
 
-        const data = await res.json();
-        // La API puede devolver el costo en diferentes campos; ajustamos según lo que retorne tu route
+        // Buscar el costo en varios campos posibles
         const costo = data.rate || data.total || data.price || data.costo || null;
         if (costo && costo > 0) {
           setChilexpressCost(costo);
         } else {
-          throw new Error('No se obtuvo costo de envío');
+          // Si no hay costo, lanzar error con mensaje de la API o genérico
+          throw new Error(data.error || 'No se encontró tarifa para la comuna ingresada');
         }
       } catch (error: any) {
         console.error('Error cotizando Chilexpress:', error);
@@ -240,6 +240,7 @@ export default function CarritoPage() {
     }
   };
 
+  // Renderizados condicionales
   if (loading || !hydrated) {
     return (
       <div className="min-h-screen bg-[#1E1E1E] text-white">
@@ -385,10 +386,12 @@ export default function CarritoPage() {
                       {shippingOption === 'chilexpress' && !cotizando && chilexpressCost !== null && (
                         <span className="text-white ml-1">- ${chilexpressCost.toLocaleString()}</span>
                       )}
-                      {cotizacionError && <span className="text-red-400 text-xs ml-1">{cotizacionError}</span>}
+                      {cotizacionError && (
+                        <span className="text-red-400 text-xs ml-1">{cotizacionError}</span>
+                      )}
                     </label>
                   </div>
-                  {/* Si quieres permitir al usuario seleccionar comuna destino (para Chilexpress) */}
+                  {/* Campo para código de comuna destino */}
                   {shippingOption === 'chilexpress' && (
                     <div className="mt-2">
                       <label className="text-xs text-gray-400">Código de comuna destino:</label>
@@ -397,9 +400,11 @@ export default function CarritoPage() {
                         value={destinoCodigo}
                         onChange={(e) => setDestinoCodigo(e.target.value.toUpperCase())}
                         className="w-full p-1 rounded bg-[#1E1E1E] border border-gray-600 text-white text-sm mt-1"
-                        placeholder="Ej: PROV"
+                        placeholder="Ej: PROV, SANTIAGO"
                       />
-                      <p className="text-[10px] text-gray-500 mt-1">Ingresa el código de comuna de destino (ej: PROV, SCL, etc.)</p>
+                      <p className="text-[10px] text-gray-500 mt-1">
+                        Usa PROV para Providencia (entorno de pruebas)
+                      </p>
                     </div>
                   )}
                 </div>
