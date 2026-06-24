@@ -9,10 +9,8 @@ interface PageProps {
   };
 }
 
-// ✅ Metadatos dinámicos para SEO
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = params;
-
   const { data: producto, error } = await supabase
     .from('productos')
     .select('*')
@@ -22,7 +20,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (error || !producto) {
     return {
       title: 'Producto no encontrado - Pazziale',
-      description: 'El producto que buscas no está disponible en nuestra tienda.',
+      description: 'El producto que buscas no está disponible.',
       robots: { index: false },
     };
   }
@@ -36,38 +34,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `${producto.nombre} - Pazziale`,
       description: producto.descripcion,
-      images: [
-        {
-          url: producto.imagen_url,
-          width: 600,
-          height: 600,
-          alt: producto.nombre,
-        },
-      ],
+      images: [{ url: producto.imagen_url, width: 600, height: 600, alt: producto.nombre }],
       url: `https://www.pazziale.cl/producto/${id}`,
-      type: 'website', // ✅ CAMBIADO DE 'product' A 'website'
+      type: 'website',
       siteName: 'Pazziale',
       locale: 'es_CL',
     },
-    alternates: {
-      canonical: `https://www.pazziale.cl/producto/${id}`,
-    },
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        'max-image-preview': 'large',
-      },
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: `${producto.nombre} - Pazziale`,
-      description: producto.descripcion,
-      images: [producto.imagen_url],
-    },
-    // Datos adicionales para Google Shopping (opcional)
+    alternates: { canonical: `https://www.pazziale.cl/producto/${id}` },
+    robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large' } },
+    twitter: { card: 'summary_large_image', title: `${producto.nombre} - Pazziale`, description: producto.descripcion, images: [producto.imagen_url] },
     other: {
       'product:price': precio.toString(),
       'product:currency': 'CLP',
@@ -79,11 +54,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function ProductoPage({ params }: PageProps) {
   const { id } = params;
 
+  // 🔍 Log para depuración
+  console.log('🔍 Buscando producto con ID:', id);
+
   const { data: producto, error } = await supabase
     .from('productos')
     .select('*')
     .eq('id', id)
     .single();
+
+  if (error) {
+    console.error('❌ Error en Supabase:', error);
+  } else {
+    console.log('✅ Producto encontrado:', producto?.nombre);
+  }
 
   const productoInicial = error ? null : producto;
 

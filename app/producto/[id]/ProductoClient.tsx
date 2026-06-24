@@ -51,6 +51,11 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
   async function fetchProducto() {
     try {
       setLoading(true);
+      setError('');
+      
+      // Log para depuración
+      console.log('🔍 Fetching product with ID:', id);
+      
       const response = await fetch(
         `https://lcdhazkemkyktfrqjtka.supabase.co/rest/v1/productos?id=eq.${id}`,
         {
@@ -60,8 +65,16 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
           }
         }
       );
-      if (!response.ok) throw new Error('Error al cargar el producto');
+      
+      console.log('📦 Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
+      console.log('📦 Data received:', data);
+      
       if (data.length === 0) {
         setError('Producto no encontrado');
         setProducto(null);
@@ -71,8 +84,13 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
         await fetchProductosSimilares(productoActual);
       }
     } catch (error) {
-      console.error('Error cargando producto:', error);
-      setError('Error al cargar el producto');
+      console.error('❌ Error cargando producto:', error);
+      if (error instanceof Error) {
+        setError(`Error al cargar: ${error.message}`);
+      } else {
+        setError('Error al cargar el producto');
+      }
+      setProducto(null);
     } finally {
       setLoading(false);
     }
@@ -178,7 +196,7 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
         </div>
       )}
 
-      {/* ✅ Breadcrumbs (migas de pan) - AHORA EN EL LUGAR CORRECTO */}
+      {/* Breadcrumbs */}
       <div className="pt-32 px-4 md:px-8 max-w-6xl mx-auto">
         <Breadcrumbs
           items={[
