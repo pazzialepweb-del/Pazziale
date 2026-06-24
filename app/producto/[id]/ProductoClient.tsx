@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ShoppingCart, Loader2, ArrowLeft, CheckCircle } from 'lucide-react';
@@ -23,42 +23,38 @@ interface Producto {
   dimensiones: string;
 }
 
-export default function ProductoClient() {
-  const params = useParams();
+interface ProductoClientProps {
+  productoInicial: Producto | null;
+  id: string;
+}
+
+export default function ProductoClient({ productoInicial, id }: ProductoClientProps) {
   const router = useRouter();
   const { agregarAlCarrito } = useCarrito();
 
-  // ⚠️ useParams devuelve { id?: string } pero a veces puede ser undefined
-  const id = params?.id as string | undefined;
-
-  const [producto, setProducto] = useState<Producto | null>(null);
+  const [producto, setProducto] = useState<Producto | null>(productoInicial);
   const [productosSimilares, setProductosSimilares] = useState<Producto[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!productoInicial);
   const [error, setError] = useState('');
   const [mensajeExito, setMensajeExito] = useState<string | null>(null);
 
+  // Si no se pasó producto inicial, lo cargamos (por si se accede directamente)
   useEffect(() => {
-    // Si el ID es inválido, mostramos error y no hacemos fetch
-    if (!id || id === 'undefined' || id === 'null' || id.trim() === '') {
-      setError('ID de producto no válido');
-      setLoading(false);
-      return;
+    if (!productoInicial) {
+      fetchProducto();
+    } else {
+      // Si ya tenemos producto, cargamos similares igual
+      fetchProductosSimilares(productoInicial);
     }
-
-    // Solo si id es válido, ejecutamos el fetch
-    fetchProducto();
-  }, [id]);
+  }, [id, productoInicial]);
 
   async function fetchProducto() {
     try {
       setLoading(true);
       setError('');
 
-      // ✅ Ahora TypeScript sabe que id no es undefined porque ya lo validamos en el useEffect
-      // Pero usamos una aserción para seguridad
-      const productoId = id as string;
-      const encodedId = encodeURIComponent(productoId);
-      const url = `https://lcdhazkemkyktfrqjtka.supabase.co/rest/v1/productos?id=eq.${encodedId}`; // ✅ URL corregida
+      const encodedId = encodeURIComponent(id);
+      const url = `https://lcdhazkemkyktfrqjtka.supabase.co/rest/v1/productos?id=eq.${encodedId}`;
 
       const response = await fetch(url, {
         headers: {
