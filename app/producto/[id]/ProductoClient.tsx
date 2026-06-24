@@ -1,4 +1,3 @@
-// app/producto/[id]/ProductoClient.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
