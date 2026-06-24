@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ShoppingCart, Loader2, ArrowLeft, CheckCircle } from 'lucide-react';
@@ -23,60 +23,42 @@ interface Producto {
   dimensiones: string;
 }
 
-interface ProductoClientProps {
-  productoInicial: Producto | null;
-  id: string;
-}
-
-export default function ProductoClient({ productoInicial, id }: ProductoClientProps) {
+export default function ProductoClient() {
+  const params = useParams();
   const router = useRouter();
   const { agregarAlCarrito } = useCarrito();
 
-  const [producto, setProducto] = useState<Producto | null>(productoInicial);
+  // ⚠️ useParams devuelve { id?: string } pero a veces puede ser undefined
+  const id = params?.id as string | undefined;
+
+  const [producto, setProducto] = useState<Producto | null>(null);
   const [productosSimilares, setProductosSimilares] = useState<Producto[]>([]);
-  const [loading, setLoading] = useState(!productoInicial);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [mensajeExito, setMensajeExito] = useState<string | null>(null);
 
-  // 🔍 Logs de depuración (se ejecutan en cada render)
-  console.log('🖥️ [Cliente] ID recibido:', id);
-  console.log('🖥️ [Cliente] productoInicial:', productoInicial?.nombre || 'null');
-
-  // Efecto para cargar producto si no vino del servidor
   useEffect(() => {
-    // Si el ID es inválido, redirigimos a la tienda
+    // Si el ID es inválido, mostramos error y no hacemos fetch
     if (!id || id === 'undefined' || id === 'null' || id.trim() === '') {
-      console.error('❌ [Cliente] ID inválido en efecto, redirigiendo...');
-      router.push('/tienda');
+      setError('ID de producto no válido');
+      setLoading(false);
       return;
     }
 
-    if (!productoInicial) {
-      console.log('🔄 [Cliente] Sin producto inicial, fetch...');
-      fetchProducto();
-    } else {
-      // Si ya tenemos producto, cargamos similares
-      console.log('🔄 [Cliente] Producto inicial OK, cargando similares...');
-      fetchProductosSimilares(productoInicial);
-    }
-  }, [id, productoInicial]);
+    // Solo si id es válido, ejecutamos el fetch
+    fetchProducto();
+  }, [id]);
 
   async function fetchProducto() {
     try {
       setLoading(true);
       setError('');
 
-      console.log('📤 [Cliente] Fetching producto con ID:', id);
-
-      // Validación adicional
-      if (!id || id === 'undefined' || id === 'null' || id.trim() === '') {
-        throw new Error('ID de producto no válido');
-      }
-
-      const encodedId = encodeURIComponent(id);
-      const url = `https://lcdhazkemkyktfrqjtka.supabase.co/rest/v1/productos?id=eq.${encodedId}`;
-
-      console.log('📤 [Cliente] URL:', url);
+      // ✅ Ahora TypeScript sabe que id no es undefined porque ya lo validamos en el useEffect
+      // Pero usamos una aserción para seguridad
+      const productoId = id as string;
+      const encodedId = encodeURIComponent(productoId);
+      const url = `https://lcdhazkemkyktfrqjtka.supabase.co/rest/v1/productos?id=eq.${encodedId}`; // ✅ URL corregida
 
       const response = await fetch(url, {
         headers: {
@@ -84,8 +66,6 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
           'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`
         }
       });
-
-      console.log('📥 [Cliente] Status:', response.status);
 
       if (!response.ok) {
         let errorText = '';
@@ -99,7 +79,6 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
       }
 
       const data = await response.json();
-      console.log('📥 [Cliente] Datos recibidos:', data);
 
       if (data.length === 0) {
         setError('Producto no encontrado');
@@ -111,11 +90,7 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
       }
     } catch (error) {
       console.error('❌ [Cliente] Error cargando producto:', error);
-      if (error instanceof Error) {
-        setError(`Error al cargar: ${error.message}`);
-      } else {
-        setError('Error al cargar el producto');
-      }
+      setError(error instanceof Error ? error.message : 'Error al cargar el producto');
       setProducto(null);
     } finally {
       setLoading(false);
