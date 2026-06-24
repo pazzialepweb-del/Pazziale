@@ -41,6 +41,9 @@ export default function RegisterPage() {
     return true;
   };
 
+  // Función para esperar (usada en el reintento)
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -52,58 +55,115 @@ export default function RegisterPage() {
       return;
     }
 
+    // 🔄 Configuración de reintentos
+    const MAX_RETRIES = 3;
+    const INITIAL_DELAY = 2000; // 2 segundos
+    let attempt = 0;
+    let lastError: any = null;
+
+    // ⏱️ Timeout de la operación (60 segundos)
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('timeout')), 45000)
+      setTimeout(() => reject(new Error('timeout')), 60000)
     );
 
+    // Mostrar mensaje de espera después de 8 segundos
     let loadingTimeout = setTimeout(() => {
       setError('El registro está tomando más tiempo de lo esperado. Por favor, espera...');
-    }, 10000);
+    }, 8000);
 
     try {
-      const registrarUsuario = async () => {
-        // ✅ Llamada correcta: solo un argumento (el objeto con email, password, options)
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
-          },
-        });
-
-        if (authError) {
-          throw authError;
-        }
-
-        if (!authData.user) {
-          throw new Error('No se pudo obtener la información del usuario');
-        }
-
-        const { error: perfilError } = await supabase
-          .from('perfiles')
-          .insert([
-            {
-              id: authData.user.id,
+      while (attempt < MAX_RETRIES) {
+        try {
+          const registrarUsuario = async () => {
+            const { data: authData, error: authError } = await supabase.auth.signUp({
               email,
-              nombre,
-              rol: 'usuario',
-              created_at: new Date().toISOString(),
+              password,
+              options: {
+                emailRedirectTo: `${window.location.origin}/auth/callback`,
+              },
+            });
+
+            if (authError) {
+              throw authError;
             }
+
+            if (!authData.user) {
+              throw new Error('No se pudo obtener la información del usuario');
+            }
+
+            const { error: perfilError } = await supabase
+              .from('perfiles')
+              .insert([
+                {
+                  id: authData.user.id,
+                  email,
+                  nombre,
+                  rol: 'usuario',
+                  created_at: new Date().toISOString(),
+                }
+              ]);
+
+            if (perfilError) {
+              throw new Error(`Perfil no creado: ${perfilError.message}`);
+            }
+
+            return { success: true };
+          };
+
+          // Ejecutar con timeout
+          const resultado = await Promise.race([
+            registrarUsuario(),
+            timeoutPromise,
           ]);
 
-        if (perfilError) {
-          throw new Error(`Perfil no creado: ${perfilError.message}`);
+          // Si llegamos aquí, todo salió bien
+          setSuccess(true);
+          setTimeout(() => {
+            router.push('/auth/login?registered=true');
+          }, 3000);
+          return; // Salimos del while y de la función
+
+        } catch (err) {
+          lastError = err;
+          attempt++;
+          console.log(`Intento ${attempt} falló:`, err);
+
+          // Si es un error de "usuario ya registrado", no reintentamos (es un error definitivo)
+          if (err instanceof Error && err.message.includes('User already registered')) {
+            throw err;
+          }
+
+          // Si es un error de rate limit, tampoco reintentamos
+          if (err instanceof Error && err.message.includes('email rate limit exceeded')) {
+            throw err;
+          }
+
+          // Si es un error de red o timeout (504), reintentamos
+          const isRetryable = 
+            err instanceof Error && (
+              err.message.includes('timeout') ||
+              err.message.includes('504') ||
+              err.message.includes('Gateway Timeout') ||
+              err.message.includes('AuthRetryableFetchError') ||
+              err.message.includes('fetch')
+            );
+
+          if (isRetryable && attempt < MAX_RETRIES) {
+            // Espera exponencial: 2s, 4s, 8s
+            const delay = INITIAL_DELAY * Math.pow(2, attempt - 1);
+            setError(`Intento ${attempt} falló. Reintentando en ${delay/1000}s...`);
+            await sleep(delay);
+            // Continuar al siguiente intento
+          } else {
+            // Si no es retryable o ya agotamos los intentos, lanzamos el error
+            throw err;
+          }
         }
+      }
 
-        return { success: true };
-      };
+      // Si salimos del while sin éxito, lanzamos el último error
+      throw lastError || new Error('Fallaron todos los intentos');
 
-      await Promise.race([registrarUsuario(), timeoutPromise]);
-
-      setSuccess(true);
-      setTimeout(() => {
-        router.push('/auth/login?registered=true');
-      }, 3000);
     } catch (error) {
       console.error('Error en registro:', error);
 
@@ -124,6 +184,8 @@ export default function RegisterPage() {
           mensajeError = 'Has excedido el límite de intentos para este correo. Espera 15-30 minutos y vuelve a intentarlo, o usa otro correo.';
         } else if (mensaje.includes('Password should contain')) {
           mensajeError = 'La contraseña debe tener al menos una mayúscula, una minúscula, un número y un carácter especial.';
+        } else if (mensaje.includes('AuthRetryableFetchError')) {
+          mensajeError = 'Error de conexión con el servidor. Reintentando automáticamente... Si el problema persiste, intenta más tarde.';
         } else {
           mensajeError = mensaje;
         }
