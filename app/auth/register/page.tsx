@@ -41,9 +41,6 @@ export default function RegisterPage() {
     return true;
   };
 
-  // Función para esperar (usada en el reintento)
-  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -55,114 +52,66 @@ export default function RegisterPage() {
       return;
     }
 
-    // 🔄 Configuración de reintentos
-    const MAX_RETRIES = 3;
-    const INITIAL_DELAY = 2000; // 2 segundos
-    let attempt = 0;
-    let lastError: any = null;
-
-    // ⏱️ Timeout de la operación (60 segundos)
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('timeout')), 60000)
-    );
-
-    // Mostrar mensaje de espera después de 8 segundos
-    let loadingTimeout = setTimeout(() => {
-      setError('El registro está tomando más tiempo de lo esperado. Por favor, espera...');
-    }, 8000);
-
     try {
-      while (attempt < MAX_RETRIES) {
-        try {
-          const registrarUsuario = async () => {
-            const { data: authData, error: authError } = await supabase.auth.signUp({
-              email,
-              password,
-              options: {
-                emailRedirectTo: `${window.location.origin}/auth/callback`,
-              },
-            });
+      // 🔥 Intentar registrar
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
 
-            if (authError) {
-              throw authError;
-            }
+      if (authError) {
+        throw authError;
+      }
 
-            if (!authData.user) {
-              throw new Error('No se pudo obtener la información del usuario');
-            }
+      // ✅ Si no hay error, el usuario se creó (aunque user pueda ser null)
+      // Supabase devuelve user null cuando la confirmación de email está activa
+      // y el usuario aún no confirmó, pero la cuenta ya existe en Auth.
 
-            const { error: perfilError } = await supabase
-              .from('perfiles')
-              .insert([
-                {
-                  id: authData.user.id,
-                  email,
-                  nombre,
-                  rol: 'usuario',
-                  created_at: new Date().toISOString(),
-                }
-              ]);
+      // Intentamos obtener el user id si existe, si no, redirigimos igual
+      let userId = authData.user?.id;
 
-            if (perfilError) {
-              throw new Error(`Perfil no creado: ${perfilError.message}`);
-            }
-
-            return { success: true };
-          };
-
-          // Ejecutar con timeout
-          const resultado = await Promise.race([
-            registrarUsuario(),
-            timeoutPromise,
-          ]);
-
-          // Si llegamos aquí, todo salió bien
-          setSuccess(true);
-          setTimeout(() => {
-            router.push('/auth/login?registered=true');
-          }, 3000);
-          return; // Salimos del while y de la función
-
-        } catch (err) {
-          lastError = err;
-          attempt++;
-          console.log(`Intento ${attempt} falló:`, err);
-
-          // Si es un error de "usuario ya registrado", no reintentamos (es un error definitivo)
-          if (err instanceof Error && err.message.includes('User already registered')) {
-            throw err;
-          }
-
-          // Si es un error de rate limit, tampoco reintentamos
-          if (err instanceof Error && err.message.includes('email rate limit exceeded')) {
-            throw err;
-          }
-
-          // Si es un error de red o timeout (504), reintentamos
-          const isRetryable = 
-            err instanceof Error && (
-              err.message.includes('timeout') ||
-              err.message.includes('504') ||
-              err.message.includes('Gateway Timeout') ||
-              err.message.includes('AuthRetryableFetchError') ||
-              err.message.includes('fetch')
-            );
-
-          if (isRetryable && attempt < MAX_RETRIES) {
-            // Espera exponencial: 2s, 4s, 8s
-            const delay = INITIAL_DELAY * Math.pow(2, attempt - 1);
-            setError(`Intento ${attempt} falló. Reintentando en ${delay/1000}s...`);
-            await sleep(delay);
-            // Continuar al siguiente intento
-          } else {
-            // Si no es retryable o ya agotamos los intentos, lanzamos el error
-            throw err;
-          }
+      // Si el user es null, intentamos obtener la sesión (por si ya quedó autenticado)
+      if (!userId) {
+        // Esperamos un momento para que Supabase procese el signup
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const { data: sessionData } = await supabase.auth.getSession();
+        // Si hay sesión, usamos ese user id
+        if (sessionData.session?.user) {
+          userId = sessionData.session.user.id;
         }
       }
 
-      // Si salimos del while sin éxito, lanzamos el último error
-      throw lastError || new Error('Fallaron todos los intentos');
+      // Si tenemos userId, insertamos el perfil
+      if (userId) {
+        const { error: perfilError } = await supabase
+          .from('perfiles')
+          .insert([
+            {
+              id: userId,
+              email,
+              nombre,
+              rol: 'usuario',
+              created_at: new Date().toISOString(),
+            }
+          ]);
+
+        if (perfilError) {
+          console.warn('Perfil no creado:', perfilError.message);
+          // No mostramos error al usuario porque la cuenta ya existe
+        }
+      } else {
+        // Si no tenemos userId, al menos la cuenta se creó en Auth
+        console.log('Usuario creado en Auth, pendiente de confirmar correo');
+      }
+
+      // 🎉 Éxito: redirigimos al login con mensaje
+      setSuccess(true);
+      setTimeout(() => {
+        router.push('/auth/login?registered=true');
+      }, 3000);
 
     } catch (error) {
       console.error('Error en registro:', error);
@@ -172,20 +121,14 @@ export default function RegisterPage() {
       if (error instanceof Error) {
         const mensaje = error.message;
 
-        if (mensaje === 'timeout') {
-          mensajeError = 'El servidor está tardando demasiado. Intenta de nuevo en unos minutos.';
-        } else if (mensaje.includes('User already registered')) {
+        if (mensaje.includes('User already registered')) {
           mensajeError = 'Este correo ya está registrado. Inicia sesión o recupera tu contraseña.';
-        } else if (mensaje.includes('Perfil no creado')) {
-          mensajeError = 'El usuario se creó, pero hubo un problema con su perfil. Por favor, contacta al administrador.';
-        } else if (mensaje.includes('status 504') || mensaje.includes('504') || mensaje.includes('Gateway Timeout')) {
-          mensajeError = 'El servidor de autenticación está tardando demasiado (504). Intenta de nuevo en unos minutos.';
         } else if (mensaje.includes('email rate limit exceeded')) {
           mensajeError = 'Has excedido el límite de intentos para este correo. Espera 15-30 minutos y vuelve a intentarlo, o usa otro correo.';
         } else if (mensaje.includes('Password should contain')) {
           mensajeError = 'La contraseña debe tener al menos una mayúscula, una minúscula, un número y un carácter especial.';
-        } else if (mensaje.includes('AuthRetryableFetchError')) {
-          mensajeError = 'Error de conexión con el servidor. Reintentando automáticamente... Si el problema persiste, intenta más tarde.';
+        } else if (mensaje.includes('timeout') || mensaje.includes('504')) {
+          mensajeError = 'El servidor está tardando demasiado. Intenta de nuevo en unos minutos.';
         } else {
           mensajeError = mensaje;
         }
@@ -195,7 +138,6 @@ export default function RegisterPage() {
 
       setError(mensajeError);
     } finally {
-      clearTimeout(loadingTimeout);
       setLoading(false);
     }
   };
@@ -253,7 +195,9 @@ export default function RegisterPage() {
 
           {success && (
             <div className="p-3 bg-green-500/10 border border-green-500 rounded-md">
-              <p className="text-green-400 text-sm">¡Usuario creado exitosamente! Revisa tu correo para confirmar tu cuenta. Redirigiendo al login...</p>
+              <p className="text-green-400 text-sm">
+                ¡Cuenta creada! Revisa tu correo para confirmar tu cuenta. Redirigiendo al login...
+              </p>
             </div>
           )}
 
