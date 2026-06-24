@@ -38,6 +38,9 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
   const [error, setError] = useState('');
   const [mensajeExito, setMensajeExito] = useState<string | null>(null);
 
+  // 🔍 Log para depuración
+  console.log('🔍 ProductoClient iniciado con ID:', id, 'productoInicial:', productoInicial?.nombre);
+
   // Si no se pasó producto inicial, lo cargamos (por si se accede directamente)
   useEffect(() => {
     if (!productoInicial) {
@@ -52,29 +55,46 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
     try {
       setLoading(true);
       setError('');
-      
-      // Log para depuración
-      console.log('🔍 Fetching product with ID:', id);
-      
-      const response = await fetch(
-        `https://lcdhazkemkyktfrqjtka.supabase.co/rest/v1/productos?id=eq.${id}`,
-        {
-          headers: {
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`
-          }
-        }
-      );
-      
-      console.log('📦 Response status:', response.status);
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+
+      // 🔍 Log del ID antes de la petición
+      console.log('📤 Fetching producto con ID:', id);
+
+      // Validar que el ID no esté vacío
+      if (!id || id.trim() === '') {
+        throw new Error('ID de producto no válido');
       }
-      
+
+      // Codificar el ID para evitar caracteres especiales
+      const encodedId = encodeURIComponent(id);
+      const url = `https://lcdhazkemkyktfrqjtka.supabase.co/rest/v1/productos?id=eq.${encodedId}`;
+
+      console.log('📤 URL de consulta:', url);
+
+      const response = await fetch(url, {
+        headers: {
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`
+        }
+      });
+
+      // 🔍 Log del status de la respuesta
+      console.log('📥 Status de respuesta:', response.status);
+
+      if (!response.ok) {
+        // Intentar leer el mensaje de error de Supabase
+        let errorText = '';
+        try {
+          const errorJson = await response.json();
+          errorText = errorJson.message || errorJson.error || response.statusText;
+        } catch {
+          errorText = response.statusText || 'Error desconocido';
+        }
+        throw new Error(`Error ${response.status}: ${errorText}`);
+      }
+
       const data = await response.json();
-      console.log('📦 Data received:', data);
-      
+      console.log('📥 Datos recibidos:', data);
+
       if (data.length === 0) {
         setError('Producto no encontrado');
         setProducto(null);
@@ -85,6 +105,7 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
       }
     } catch (error) {
       console.error('❌ Error cargando producto:', error);
+      // Mostrar mensaje más específico
       if (error instanceof Error) {
         setError(`Error al cargar: ${error.message}`);
       } else {
@@ -196,7 +217,7 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
         </div>
       )}
 
-      {/* Breadcrumbs */}
+      {/* ✅ Breadcrumbs (migas de pan) */}
       <div className="pt-32 px-4 md:px-8 max-w-6xl mx-auto">
         <Breadcrumbs
           items={[
