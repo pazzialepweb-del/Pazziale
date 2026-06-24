@@ -38,15 +38,25 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
   const [error, setError] = useState('');
   const [mensajeExito, setMensajeExito] = useState<string | null>(null);
 
-  // 🔍 Log para depuración
-  console.log('🔍 ProductoClient iniciado con ID:', id, 'productoInicial:', productoInicial?.nombre);
+  // 🔍 Logs de depuración (se ejecutan en cada render)
+  console.log('🖥️ [Cliente] ID recibido:', id);
+  console.log('🖥️ [Cliente] productoInicial:', productoInicial?.nombre || 'null');
 
-  // Si no se pasó producto inicial, lo cargamos (por si se accede directamente)
+  // Efecto para cargar producto si no vino del servidor
   useEffect(() => {
+    // Si el ID es inválido, redirigimos a la tienda
+    if (!id || id === 'undefined' || id === 'null' || id.trim() === '') {
+      console.error('❌ [Cliente] ID inválido en efecto, redirigiendo...');
+      router.push('/tienda');
+      return;
+    }
+
     if (!productoInicial) {
+      console.log('🔄 [Cliente] Sin producto inicial, fetch...');
       fetchProducto();
     } else {
-      // Si ya tenemos producto, cargamos similares igual
+      // Si ya tenemos producto, cargamos similares
+      console.log('🔄 [Cliente] Producto inicial OK, cargando similares...');
       fetchProductosSimilares(productoInicial);
     }
   }, [id, productoInicial]);
@@ -56,19 +66,17 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
       setLoading(true);
       setError('');
 
-      // 🔍 Log del ID antes de la petición
-      console.log('📤 Fetching producto con ID:', id);
+      console.log('📤 [Cliente] Fetching producto con ID:', id);
 
-      // Validar que el ID no esté vacío
-      if (!id || id.trim() === '') {
+      // Validación adicional
+      if (!id || id === 'undefined' || id === 'null' || id.trim() === '') {
         throw new Error('ID de producto no válido');
       }
 
-      // Codificar el ID para evitar caracteres especiales
       const encodedId = encodeURIComponent(id);
       const url = `https://lcdhazkemkyktfrqjtka.supabase.co/rest/v1/productos?id=eq.${encodedId}`;
 
-      console.log('📤 URL de consulta:', url);
+      console.log('📤 [Cliente] URL:', url);
 
       const response = await fetch(url, {
         headers: {
@@ -77,11 +85,9 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
         }
       });
 
-      // 🔍 Log del status de la respuesta
-      console.log('📥 Status de respuesta:', response.status);
+      console.log('📥 [Cliente] Status:', response.status);
 
       if (!response.ok) {
-        // Intentar leer el mensaje de error de Supabase
         let errorText = '';
         try {
           const errorJson = await response.json();
@@ -93,7 +99,7 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
       }
 
       const data = await response.json();
-      console.log('📥 Datos recibidos:', data);
+      console.log('📥 [Cliente] Datos recibidos:', data);
 
       if (data.length === 0) {
         setError('Producto no encontrado');
@@ -104,8 +110,7 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
         await fetchProductosSimilares(productoActual);
       }
     } catch (error) {
-      console.error('❌ Error cargando producto:', error);
-      // Mostrar mensaje más específico
+      console.error('❌ [Cliente] Error cargando producto:', error);
       if (error instanceof Error) {
         setError(`Error al cargar: ${error.message}`);
       } else {
@@ -217,7 +222,6 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
         </div>
       )}
 
-      {/* ✅ Breadcrumbs (migas de pan) */}
       <div className="pt-32 px-4 md:px-8 max-w-6xl mx-auto">
         <Breadcrumbs
           items={[
@@ -239,7 +243,6 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
         </button>
 
         <article className="grid md:grid-cols-2 gap-12 mb-16">
-          {/* Imagen del producto */}
           <div className="bg-[#2D2D2D] rounded-2xl overflow-hidden border border-[#F59E0B]/30 p-4">
             <div className="aspect-square rounded-xl overflow-hidden relative">
               <Image
@@ -254,7 +257,6 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
             </div>
           </div>
 
-          {/* Detalles del producto */}
           <div className="flex flex-col justify-center">
             <h1 className="text-4xl md:text-5xl font-serif mb-2">{producto.nombre}</h1>
 
@@ -310,7 +312,6 @@ export default function ProductoClient({ productoInicial, id }: ProductoClientPr
           </div>
         </article>
 
-        {/* Productos similares */}
         {productosSimilares.length > 0 && (
           <section className="border-t border-[#F59E0B]/20 pt-12 mt-8">
             <h2 className="text-2xl md:text-3xl font-serif mb-8 text-center text-white">También te puede interesar</h2>

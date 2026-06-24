@@ -1,5 +1,6 @@
 // app/producto/[id]/page.tsx
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import ProductoClient from './ProductoClient';
 
@@ -11,6 +12,16 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = params;
+
+  // 🔍 Validación temprana
+  if (!id || id === 'undefined' || id === 'null') {
+    return {
+      title: 'Producto no encontrado - Pazziale',
+      description: 'El producto que buscas no está disponible.',
+      robots: { index: false },
+    };
+  }
+
   const { data: producto, error } = await supabase
     .from('productos')
     .select('*')
@@ -54,8 +65,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function ProductoPage({ params }: PageProps) {
   const { id } = params;
 
-  // 🔍 Log para depuración
-  console.log('🔍 Buscando producto con ID:', id);
+  // 🔍 Log del ID recibido en el servidor
+  console.log('🔍 [Servidor] ID recibido:', id);
+
+  // ✅ Validación del ID en el servidor
+  if (!id || id === 'undefined' || id === 'null' || id.trim() === '') {
+    console.error('❌ [Servidor] ID inválido:', id);
+    notFound(); // Lanza un 404
+  }
 
   const { data: producto, error } = await supabase
     .from('productos')
@@ -64,12 +81,13 @@ export default async function ProductoPage({ params }: PageProps) {
     .single();
 
   if (error) {
-    console.error('❌ Error en Supabase:', error);
-  } else {
-    console.log('✅ Producto encontrado:', producto?.nombre);
+    console.error('❌ [Servidor] Error en Supabase:', error);
+    notFound();
   }
 
-  const productoInicial = error ? null : producto;
+  console.log('✅ [Servidor] Producto encontrado:', producto?.nombre);
+  console.log('📦 [Servidor] productoInicial:', producto?.nombre || 'null');
 
-  return <ProductoClient productoInicial={productoInicial} id={id} />;
+  // Pasamos el producto al cliente, si existe, o null
+  return <ProductoClient productoInicial={producto || null} id={id} />;
 }
