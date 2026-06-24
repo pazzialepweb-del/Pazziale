@@ -14,7 +14,6 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false);
   const router = useRouter();
 
-  // Validación previa antes de enviar
   const validarFormulario = () => {
     if (!nombre.trim()) {
       setError('El nombre es obligatorio.');
@@ -28,6 +27,17 @@ export default function RegisterPage() {
       setError('La contraseña debe tener al menos 6 caracteres.');
       return false;
     }
+
+    const tieneMayuscula = /[A-Z]/.test(password);
+    const tieneMinuscula = /[a-z]/.test(password);
+    const tieneNumero = /[0-9]/.test(password);
+    const tieneEspecial = /[!@#$%^&*()_+\-=[\]{};:'"|,.<>/?]/.test(password);
+
+    if (!tieneMayuscula || !tieneMinuscula || !tieneNumero || !tieneEspecial) {
+      setError('La contraseña debe tener al menos una mayúscula, una minúscula, un número y un carácter especial.');
+      return false;
+    }
+
     return true;
   };
 
@@ -42,20 +52,17 @@ export default function RegisterPage() {
       return;
     }
 
-    // ⏱️ Timeout extendido a 25 segundos (más margen para Supabase)
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('timeout')), 25000)
+      setTimeout(() => reject(new Error('timeout')), 45000)
     );
 
-    // ⏳ Mensaje de espera después de 8 segundos (feedback para el usuario)
     let loadingTimeout = setTimeout(() => {
       setError('El registro está tomando más tiempo de lo esperado. Por favor, espera...');
-    }, 8000);
+    }, 10000);
 
     try {
-      // Función que ejecuta el registro (sin verificación previa de email)
       const registrarUsuario = async () => {
-        // 1. Crear usuario en Supabase Auth (ya no verificamos duplicado antes)
+        // ✅ Llamada correcta: solo un argumento (el objeto con email, password, options)
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email,
           password,
@@ -72,70 +79,52 @@ export default function RegisterPage() {
           throw new Error('No se pudo obtener la información del usuario');
         }
 
-        // 2. Insertar el perfil en la tabla "perfiles"
         const { error: perfilError } = await supabase
           .from('perfiles')
           .insert([
             {
               id: authData.user.id,
-              email: email,
-              nombre: nombre,
+              email,
+              nombre,
               rol: 'usuario',
               created_at: new Date().toISOString(),
             }
           ]);
 
         if (perfilError) {
-          // El perfil falló, pero el usuario ya se creó en Auth
           throw new Error(`Perfil no creado: ${perfilError.message}`);
         }
 
         return { success: true };
       };
 
-      // Ejecutar con timeout
-      await Promise.race([
-        registrarUsuario(),
-        timeoutPromise,
-      ]);
+      await Promise.race([registrarUsuario(), timeoutPromise]);
 
-      // Éxito
       setSuccess(true);
       setTimeout(() => {
         router.push('/auth/login?registered=true');
       }, 3000);
-
     } catch (error) {
       console.error('Error en registro:', error);
 
-      // 🧠 Manejo específico de errores
       let mensajeError = '';
 
       if (error instanceof Error) {
         const mensaje = error.message;
 
-        // Timeout manual (25 segundos)
         if (mensaje === 'timeout') {
-          mensajeError = 'El servidor está tardando demasiado. Intenta de nuevo en unos minutos. Si el problema persiste, contacta a soporte.';
-        }
-        // Error de red o fetch
-        else if (error instanceof TypeError && mensaje.includes('fetch')) {
-          mensajeError = 'Error de conexión. Revisa tu internet o inténtalo más tarde.';
-        }
-        // Errores de Supabase Auth (usuario duplicado)
-        else if (mensaje.includes('User already registered')) {
+          mensajeError = 'El servidor está tardando demasiado. Intenta de nuevo en unos minutos.';
+        } else if (mensaje.includes('User already registered')) {
           mensajeError = 'Este correo ya está registrado. Inicia sesión o recupera tu contraseña.';
-        }
-        // Error de perfil
-        else if (mensaje.includes('Perfil no creado')) {
+        } else if (mensaje.includes('Perfil no creado')) {
           mensajeError = 'El usuario se creó, pero hubo un problema con su perfil. Por favor, contacta al administrador.';
-        }
-        // Otros errores de Supabase (504, etc.)
-        else if (mensaje.includes('status 504') || mensaje.includes('504')) {
-          mensajeError = 'El servidor de autenticación está tardando demasiado. Intenta de nuevo en unos minutos.';
-        }
-        // Error desconocido
-        else {
+        } else if (mensaje.includes('status 504') || mensaje.includes('504') || mensaje.includes('Gateway Timeout')) {
+          mensajeError = 'El servidor de autenticación está tardando demasiado (504). Intenta de nuevo en unos minutos.';
+        } else if (mensaje.includes('email rate limit exceeded')) {
+          mensajeError = 'Has excedido el límite de intentos para este correo. Espera 15-30 minutos y vuelve a intentarlo, o usa otro correo.';
+        } else if (mensaje.includes('Password should contain')) {
+          mensajeError = 'La contraseña debe tener al menos una mayúscula, una minúscula, un número y un carácter especial.';
+        } else {
           mensajeError = mensaje;
         }
       } else {
@@ -144,7 +133,7 @@ export default function RegisterPage() {
 
       setError(mensajeError);
     } finally {
-      clearTimeout(loadingTimeout); // Limpiar el timeout del mensaje de espera
+      clearTimeout(loadingTimeout);
       setLoading(false);
     }
   };
@@ -153,7 +142,6 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-[#1A2238] text-white flex items-center justify-center">
       <div className="max-w-md w-full p-8 bg-[#131A2A] rounded-lg border border-gray-700">
         <h1 className="text-3xl font-serif mb-6 text-center">Registro</h1>
-        
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">Nombre</label>
@@ -185,9 +173,11 @@ export default function RegisterPage() {
               required
               minLength={6}
             />
-            <p className="text-xs text-gray-400 mt-1">Mínimo 6 caracteres.</p>
+            <p className="text-xs text-gray-400 mt-1">
+              Mínimo 6 caracteres. Debe tener mayúscula, minúscula, número y un carácter especial (ej: !@#$%).
+            </p>
           </div>
-          
+
           {error && (
             <div className="p-3 bg-red-500/10 border border-red-500 rounded-md">
               <p className="text-red-400 text-sm">{error}</p>
@@ -198,13 +188,13 @@ export default function RegisterPage() {
               )}
             </div>
           )}
-          
+
           {success && (
             <div className="p-3 bg-green-500/10 border border-green-500 rounded-md">
               <p className="text-green-400 text-sm">¡Usuario creado exitosamente! Revisa tu correo para confirmar tu cuenta. Redirigiendo al login...</p>
             </div>
           )}
-          
+
           <button
             type="submit"
             disabled={loading || success}
@@ -213,7 +203,7 @@ export default function RegisterPage() {
             {loading ? 'Registrando...' : 'Registrarse'}
           </button>
         </form>
-        
+
         <p className="text-center text-sm text-gray-400 mt-4">
           ¿Ya tienes cuenta?{' '}
           <Link href="/auth/login" className="text-[#EAA584] hover:underline">
