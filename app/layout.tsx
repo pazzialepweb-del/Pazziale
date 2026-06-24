@@ -1,6 +1,14 @@
 import '@/app/globals.css';
 import { CarritoProvider } from '@/context/CarritoContext';
 import Script from 'next/script';
+import type { Metadata } from 'next'; // 👈 Importa el tipo
+
+// ✅ Agrega esta exportación
+export const metadata: Metadata = {
+  verification: {
+    google: 'mXfvn8Qfo71YYbo_qQbcPCiNUaMXgR08XjJUSSX4cWM',
+  },
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
