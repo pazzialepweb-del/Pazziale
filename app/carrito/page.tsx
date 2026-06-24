@@ -1,26 +1,28 @@
+// app/carrito/page.tsx
 'use client';
 
 import { useCarrito } from '@/context/CarritoContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import { Trash2, Minus, ShoppingBag, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
 export default function CarritoPage() {
-  const { 
-    items, 
-    loading, 
-    totalItems, 
-    totalPrecio, 
-    actualizarCantidad, 
-    eliminarDelCarrito, 
-    vaciarCarrito 
+  const {
+    items,
+    loading,
+    totalItems,
+    totalPrecio,
+    actualizarCantidad,
+    eliminarDelCarrito,
+    vaciarCarrito
   } = useCarrito();
 
-  // ✅ Total sin envío (el envío se pagará aparte)
   const totalSinEnvio = totalPrecio;
 
   const [hydrated, setHydrated] = useState(false);
@@ -75,7 +77,6 @@ export default function CarritoPage() {
 
       const externalRef = `pedido_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
-      // Insertar pedido con totalSinEnvio (el envío se pagará después)
       const { data: pedidoData, error } = await supabase
         .from('pedidos')
         .insert([{
@@ -99,7 +100,6 @@ export default function CarritoPage() {
       vaciarCarrito();
       setCheckoutOpen(false);
 
-      // Items para Mercado Pago (solo productos, sin envío)
       const mpItems = items.map(item => ({
         id: item.id,
         nombre: item.nombre,
@@ -108,7 +108,6 @@ export default function CarritoPage() {
         imagen_url: item.imagen_url,
       }));
 
-      // Crear preferencia de pago
       const response = await fetch('/api/create-preference', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -163,11 +162,11 @@ export default function CarritoPage() {
       <div className="min-h-screen bg-[#1E1E1E] text-white">
         <Navbar />
         <div className="pt-32 px-6 text-center">
-          <ShoppingBag className="w-16 h-16 mx-auto text-[#EC4899] mb-4" />
+          <ShoppingBag className="w-16 h-16 mx-auto text-[#EC4899] mb-4" aria-hidden="true" />
           <h1 className="text-3xl font-serif mb-2">Tu carrito está vacío</h1>
           <p className="text-gray-400 mb-6">Explora nuestra colección y encuentra tu próxima joya.</p>
-          <Link 
-            href="/tienda" 
+          <Link
+            href="/tienda"
             className="bg-[#EC4899] text-white px-8 py-3 rounded-full font-medium hover:bg-[#F59E0B] transition-colors inline-block"
           >
             Ir a la tienda
@@ -180,75 +179,85 @@ export default function CarritoPage() {
   return (
     <div className="min-h-screen bg-[#1E1E1E] text-white pb-20">
       <Navbar />
-      
+
+      {/* ✅ Breadcrumbs (migas de pan) */}
       <div className="pt-32 px-4 md:px-8 max-w-6xl mx-auto">
+        <Breadcrumbs items={[{ label: 'Carrito' }]} className="mb-4" />
+      </div>
+
+      <main className="px-4 md:px-8 max-w-6xl mx-auto">
         <h1 className="text-4xl font-serif mb-8">Mi Carrito</h1>
-        
+
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Lista de productos */}
-          <div className="flex-1">
+          <section className="flex-1" aria-label="Productos en el carrito">
             <div className="space-y-4">
               {items.map((item) => {
                 const nombre = item.nombre || 'Producto sin nombre';
-                const precio = typeof item.precio === 'number' && !isNaN(item.precio) 
-                  ? item.precio 
+                const precio = typeof item.precio === 'number' && !isNaN(item.precio)
+                  ? item.precio
                   : 0;
                 const imagenUrl = item.imagen_url || '';
 
                 return (
-                  <div 
-                    key={item.id} 
+                  <article
+                    key={item.id}
                     className="bg-[#2D2D2D] p-4 rounded-lg flex flex-col md:flex-row gap-4 items-center justify-between border border-[#F59E0B]/30 hover:border-[#EC4899] transition-colors"
                   >
                     <div className="flex items-center gap-4 w-full md:w-auto">
-                      <div className="w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-[#1E1E1E] border border-[#F59E0B]/30 flex items-center justify-center">
+                      <div className="w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-[#1E1E1E] border border-[#F59E0B]/30 flex items-center justify-center relative">
                         {imagenUrl ? (
-                          <img 
-                            src={imagenUrl} 
-                            alt={nombre} 
+                          <Image
+                            src={imagenUrl}
+                            alt={`${nombre} - Pazziale`}
+                            width={80}
+                            height={80}
                             className="w-full h-full object-cover"
+                            unoptimized={imagenUrl.startsWith('http')}
                           />
                         ) : (
                           <span className="text-gray-500 text-xs text-center p-2">Sin imagen</span>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-serif text-lg truncate">{nombre}</h3>
+                        <h2 className="font-serif text-lg truncate">{nombre}</h2>
                         <p className="text-[#EC4899] font-medium">
-                          {precio > 0 
+                          {precio > 0
                             ? `$${precio.toLocaleString()}`
-                            : 'Precio no disponible'
-                          }
+                            : 'Precio no disponible'}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 w-full md:w-auto justify-end">
                       <div className="flex items-center gap-2 bg-[#1E1E1E] rounded-lg px-2 py-1">
-                        <button 
+                        <button
                           onClick={() => actualizarCantidad(item.id, item.cantidad - 1)}
                           className="p-1 hover:text-[#EC4899] transition-colors"
                           disabled={item.cantidad <= 1}
+                          aria-label={`Disminuir cantidad de ${nombre}`}
                         >
-                          <Minus className="w-4 h-4" />
+                          <Minus className="w-4 h-4" aria-hidden="true" />
                         </button>
-                        <span className="w-8 text-center">{item.cantidad}</span>
+                        <span className="w-8 text-center" aria-label={`Cantidad: ${item.cantidad}`}>
+                          {item.cantidad}
+                        </span>
                       </div>
-                      <button 
+                      <button
                         onClick={() => eliminarDelCarrito(item.id)}
                         className="text-red-400 hover:text-red-500 transition-colors p-1"
-                        aria-label="Eliminar producto"
+                        aria-label={`Eliminar ${nombre} del carrito`}
                       >
-                        <Trash2 className="w-5 h-5" />
+                        <Trash2 className="w-5 h-5" aria-hidden="true" />
                       </button>
                     </div>
-                  </div>
+                  </article>
                 );
               })}
             </div>
-          </div>
+          </section>
 
           {/* Resumen */}
-          <div className="lg:w-96">
+          <aside className="lg:w-96" aria-label="Resumen del carrito">
             <div className="bg-[#2D2D2D] p-6 rounded-lg border border-[#F59E0B]/30 sticky top-24">
               <h2 className="text-2xl font-serif mb-4">Resumen</h2>
               <div className="space-y-3 text-gray-400">
@@ -257,7 +266,6 @@ export default function CarritoPage() {
                   <span>${totalPrecio.toLocaleString()}</span>
                 </div>
 
-                {/* 👇 Mensaje fijo: envío por pagar */}
                 <div className="border-t border-[#F59E0B]/30 my-4 pt-4">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium text-[#F59E0B]">Envío</span>
@@ -277,7 +285,7 @@ export default function CarritoPage() {
                 </div>
               </div>
 
-              <button 
+              <button
                 onClick={() => {
                   if (!user) {
                     router.push('/auth/login');
@@ -289,35 +297,46 @@ export default function CarritoPage() {
               >
                 Finalizar compra
               </button>
-              
-              <button 
+
+              <button
                 onClick={vaciarCarrito}
                 className="w-full border border-red-400 text-red-400 py-2 rounded-lg font-medium hover:bg-red-400 hover:text-white transition-colors mt-2 text-sm"
               >
                 Vaciar carrito
               </button>
             </div>
-          </div>
+          </aside>
         </div>
-      </div>
+      </main>
 
       {/* --- MODAL DE CHECKOUT --- */}
       {checkoutOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="checkout-title"
+        >
           <div className="bg-[#1E1E1E] border border-[#EC4899]/30 rounded-2xl max-w-md w-full p-8 relative shadow-2xl">
             <button
               onClick={() => setCheckoutOpen(false)}
               className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors"
+              aria-label="Cerrar formulario de envío"
             >
-              <X className="w-6 h-6" />
+              <X className="w-6 h-6" aria-hidden="true" />
             </button>
-            
-            <h2 className="text-3xl font-serif mb-6 text-white text-center">Datos de Envío</h2>
-            
+
+            <h2 id="checkout-title" className="text-3xl font-serif mb-6 text-white text-center">
+              Datos de Envío
+            </h2>
+
             <form onSubmit={handleMercadoPagoCheckout} className="space-y-4 mt-4">
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-300">Nombre completo</label>
+                <label className="block text-sm font-medium mb-1 text-gray-300" htmlFor="nombre">
+                  Nombre completo
+                </label>
                 <input
+                  id="nombre"
                   type="text"
                   value={form.nombre}
                   onChange={(e) => setForm({...form, nombre: e.target.value})}
@@ -326,8 +345,11 @@ export default function CarritoPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-300">Dirección</label>
+                <label className="block text-sm font-medium mb-1 text-gray-300" htmlFor="direccion">
+                  Dirección
+                </label>
                 <input
+                  id="direccion"
                   type="text"
                   value={form.direccion}
                   onChange={(e) => setForm({...form, direccion: e.target.value})}
@@ -336,8 +358,11 @@ export default function CarritoPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-300">Teléfono</label>
+                <label className="block text-sm font-medium mb-1 text-gray-300" htmlFor="telefono">
+                  Teléfono
+                </label>
                 <input
+                  id="telefono"
                   type="tel"
                   value={form.telefono}
                   onChange={(e) => setForm({...form, telefono: e.target.value})}
@@ -346,8 +371,11 @@ export default function CarritoPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-300">Correo electrónico</label>
+                <label className="block text-sm font-medium mb-1 text-gray-300" htmlFor="email">
+                  Correo electrónico
+                </label>
                 <input
+                  id="email"
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({...form, email: e.target.value})}
@@ -356,7 +384,6 @@ export default function CarritoPage() {
                 />
               </div>
 
-              {/* 👇 Aviso sobre el envío en el modal */}
               <div className="bg-[#2D2D2D] p-3 rounded-lg border border-yellow-500/30">
                 <p className="text-xs text-yellow-400 text-center">
                   💡 El envío se pagará al momento de la entrega. El total a pagar ahora es solo por los productos.
@@ -370,7 +397,7 @@ export default function CarritoPage() {
               >
                 {procesando ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" /> Procesando...
+                    <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> Procesando...
                   </>
                 ) : (
                   `Pagar $${totalPrecio.toLocaleString()} (sin envío)`

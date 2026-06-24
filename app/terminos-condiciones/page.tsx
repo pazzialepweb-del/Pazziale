@@ -1,27 +1,60 @@
-'use client';
-
+import type { Metadata } from 'next';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
+export const metadata: Metadata = {
+  title: 'Términos y Condiciones - Pazziale',
+  description: 'Conoce los términos y condiciones de uso de Pazziale, tienda de joyería artesanal. Políticas de compra, envíos, cambios y devoluciones.',
+  robots: {
+    index: true,
+    follow: true,
+  },
+  alternates: {
+    canonical: 'https://www.pazziale.cl/terminos-condiciones',
+  },
+  openGraph: {
+    title: 'Términos y Condiciones - Pazziale',
+    description: 'Lee los términos y condiciones de nuestra tienda de joyería artesanal.',
+    url: 'https://www.pazziale.cl/terminos-condiciones',
+    type: 'website',
+    siteName: 'Pazziale',
+    locale: 'es_CL',
+  },
+};
+
 export default function TerminosCondicionesPage() {
+  const currentYear = new Date().getFullYear();
+
   return (
     <div className="min-h-screen bg-[#1E1E1E] text-white">
       <Navbar />
-      <div className="pt-32 px-4 md:px-8 max-w-4xl mx-auto pb-16">
-        <Link href="/" className="inline-flex items-center gap-2 text-[#EAA584] hover:text-[#F59E0B] transition-colors mb-6">
+      <main className="pt-32 px-4 md:px-8 max-w-4xl mx-auto pb-16">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-[#EAA584] hover:text-[#F59E0B] transition-colors mb-6"
+          aria-label="Volver al inicio"
+        >
           <ArrowLeft className="w-4 h-4" />
           Volver al inicio
         </Link>
 
         <h1 className="text-4xl font-serif mb-8 text-[#EAA584]">Términos y Condiciones</h1>
         <div className="space-y-6 text-gray-300 leading-relaxed">
-          <p><strong>Última actualización:</strong> [Fecha actual]</p>
+          <p>
+            <strong>Última actualización:</strong> {new Date().toLocaleDateString('es-CL', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </p>
 
           <section>
             <h2 className="text-2xl font-serif text-white mb-2">1. Aceptación de los Términos</h2>
-            <p>Al utilizar la tienda en línea de Pazziale, aceptas cumplir con estos Términos y Condiciones. Si no estás de acuerdo, por favor no utilices nuestro sitio.</p>
+            <p>
+              Al utilizar la tienda en línea de Pazziale, aceptas cumplir con estos Términos y Condiciones. Si no estás de acuerdo, por favor no utilices nuestro sitio.
+            </p>
           </section>
 
           <section>
@@ -54,20 +87,34 @@ export default function TerminosCondicionesPage() {
           <section>
             <h2 className="text-2xl font-serif text-white mb-2">5. Cambios y devoluciones</h2>
             <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
-              <li>Aceptamos cambios o devoluciones dentro de los 30 días posteriores a la compra, siempre que el producto esté en perfecto estado.</li>
-              <li>Los gastos de envío por devolución corren por cuenta del cliente, excepto en casos de defecto de fábrica.</li>
-              <li>Para iniciar un cambio, contáctanos a <a href="mailto:contacto@pazziale.cl" className="text-[#EAA584] hover:underline">contacto@pazziale.cl</a>.</li>
+              <li>
+                Aceptamos cambios o devoluciones dentro de los 30 días posteriores a la compra, siempre que el producto esté en perfecto estado.
+              </li>
+              <li>
+                Los gastos de envío por devolución corren por cuenta del cliente, excepto en casos de defecto de fábrica.
+              </li>
+              <li>
+                Para iniciar un cambio, contáctanos a{' '}
+                <a href="mailto:contacto@pazziale.cl" className="text-[#EAA584] hover:underline">
+                  contacto@pazziale.cl
+                </a>
+                .
+              </li>
             </ul>
           </section>
 
           <section>
             <h2 className="text-2xl font-serif text-white mb-2">6. Propiedad intelectual</h2>
-            <p>Todo el contenido del sitio (textos, imágenes, logotipos) es propiedad de Pazziale y está protegido por derechos de autor. Queda prohibida su reproducción sin autorización expresa.</p>
+            <p>
+              Todo el contenido del sitio (textos, imágenes, logotipos) es propiedad de Pazziale y está protegido por derechos de autor. Queda prohibida su reproducción sin autorización expresa.
+            </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-serif text-white mb-2">7. Limitación de responsabilidad</h2>
-            <p>No nos hacemos responsables por el mal uso de los productos ni por daños indirectos derivados de su uso. La información proporcionada es de carácter general y puede contener errores involuntarios.</p>
+            <p>
+              No nos hacemos responsables por el mal uso de los productos ni por daños indirectos derivados de su uso. La información proporcionada es de carácter general y puede contener errores involuntarios.
+            </p>
           </section>
 
           <section>
@@ -77,10 +124,16 @@ export default function TerminosCondicionesPage() {
 
           <section>
             <h2 className="text-2xl font-serif text-white mb-2">9. Contacto</h2>
-            <p>Si tienes preguntas sobre estos términos, escríbenos a <a href="mailto:contacto@pazziale.cl" className="text-[#EAA584] hover:underline">contacto@pazziale.cl</a>.</p>
+            <p>
+              Si tienes preguntas sobre estos términos, escríbenos a{' '}
+              <a href="mailto:contacto@pazziale.cl" className="text-[#EAA584] hover:underline">
+                contacto@pazziale.cl
+              </a>
+              .
+            </p>
           </section>
         </div>
-      </div>
+      </main>
       <Footer />
     </div>
   );
