@@ -11,11 +11,38 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
-interface Comuna {
-  codigo: string;
-  nombre: string;
-  region?: string;
-}
+// 📦 COMUNAS (lista estática para el selector)
+const comunasDestino = [
+  { codigo: 'PROV', nombre: 'Providencia' },
+  { codigo: 'SANTIAGO', nombre: 'Santiago Centro' },
+  { codigo: 'LAS_CONDES', nombre: 'Las Condes' },
+  { codigo: 'NUNOA', nombre: 'Ñuñoa' },
+  { codigo: 'VITACURA', nombre: 'Vitacura' },
+  { codigo: 'TALCA', nombre: 'Talca' },
+  { codigo: 'CURICO', nombre: 'Curicó' },
+  { codigo: 'LINARES', nombre: 'Linares' },
+  { codigo: 'CONCEPCION', nombre: 'Concepción' },
+  { codigo: 'TEMUCO', nombre: 'Temuco' },
+  { codigo: 'VALDIVIA', nombre: 'Valdivia' },
+  { codigo: 'PUERTO_MONTT', nombre: 'Puerto Montt' },
+  { codigo: 'ARICA', nombre: 'Arica' },
+  { codigo: 'IQUIQUE', nombre: 'Iquique' },
+  { codigo: 'ANTOFAGASTA', nombre: 'Antofagasta' },
+  { codigo: 'COPIAPO', nombre: 'Copiapó' },
+  { codigo: 'LA_SERENA', nombre: 'La Serena' },
+  { codigo: 'VALPARAISO', nombre: 'Valparaíso' },
+  { codigo: 'RANCAGUA', nombre: 'Rancagua' },
+  { codigo: 'CHILLAN', nombre: 'Chillán' },
+  { codigo: 'OSORNO', nombre: 'Osorno' },
+  { codigo: 'PUNTA_ARENAS', nombre: 'Punta Arenas' },
+  { codigo: 'COYHAIQUE', nombre: 'Coyhaique' },
+];
+
+// 🚚 OPCIONES DE ENVÍO (solo nombres y logos)
+const opcionesEnvio = [
+  { id: 'chilexpress', nombre: 'Chilexpress', logo: '/images/chilexpress.jpg' },
+  { id: 'starken', nombre: 'Starken', logo: '/images/starken.jpg' },
+];
 
 export default function CarritoPage() {
   const {
@@ -28,131 +55,12 @@ export default function CarritoPage() {
     vaciarCarrito,
   } = useCarrito();
 
-  // 🌎 Estado para envío
-  const [comunas, setComunas] = useState<Comuna[]>([]);
-  const [cargandoComunas, setCargandoComunas] = useState(true);
+  // 🌎 Estado para envío (solo selección de comuna y empresa)
   const [comunaSeleccionada, setComunaSeleccionada] = useState<string>('PROV');
-  const [costoEnvio, setCostoEnvio] = useState<number | null>(null);
-  const [cotizando, setCotizando] = useState(false);
-  const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
-  const [servicioEnvio, setServicioEnvio] = useState<string | null>(null);
+  const [metodoEnvio, setMetodoEnvio] = useState<string>('chilexpress');
 
-  // 📦 Calcular peso total del carrito (0.5 kg por producto)
-  const PESO_PRODUCTO = 0.5;
-  const pesoTotal = items.reduce((acc, item) => acc + PESO_PRODUCTO * item.cantidad, 0);
-  const valorDeclarado = totalPrecio;
-
-  // 🔄 Obtener comunas desde la API de Coberturas de Chilexpress
-  useEffect(() => {
-    const cargarComunas = async () => {
-      try {
-        setCargandoComunas(true);
-        const res = await fetch('/api/chilexpress/comunas');
-        if (!res.ok) {
-          throw new Error('Error al cargar comunas');
-        }
-        const data = await res.json();
-        if (data.comunas && data.comunas.length > 0) {
-          setComunas(data.comunas);
-          // Si la lista incluye comunas, seleccionamos la primera (ej: Providencia)
-          const primera = data.comunas[0];
-          if (primera) {
-            setComunaSeleccionada(primera.codigo);
-          }
-        } else {
-          // Fallback a lista manual si la API no devuelve datos
-          setComunas(comunasManual);
-        }
-      } catch (error) {
-        console.error('Error cargando comunas:', error);
-        // Fallback a lista manual
-        setComunas(comunasManual);
-      } finally {
-        setCargandoComunas(false);
-      }
-    };
-    cargarComunas();
-  }, []);
-
-  // 📋 Lista manual de comunas (fallback en caso de que la API falle)
-  const comunasManual: Comuna[] = [
-    { codigo: 'PROV', nombre: 'Providencia' },
-    { codigo: 'SANTIAGO', nombre: 'Santiago Centro' },
-    { codigo: 'LAS_CONDES', nombre: 'Las Condes' },
-    { codigo: 'NUNOA', nombre: 'Ñuñoa' },
-    { codigo: 'VITACURA', nombre: 'Vitacura' },
-    { codigo: 'TALCA', nombre: 'Talca' },
-    { codigo: 'CURICO', nombre: 'Curicó' },
-    { codigo: 'LINARES', nombre: 'Linares' },
-    { codigo: 'CONCEPCION', nombre: 'Concepción' },
-    { codigo: 'TEMUCO', nombre: 'Temuco' },
-    { codigo: 'VALDIVIA', nombre: 'Valdivia' },
-    { codigo: 'PUERTO_MONTT', nombre: 'Puerto Montt' },
-    { codigo: 'ARICA', nombre: 'Arica' },
-    { codigo: 'IQUIQUE', nombre: 'Iquique' },
-    { codigo: 'ANTOFAGASTA', nombre: 'Antofagasta' },
-    { codigo: 'COPIAPO', nombre: 'Copiapó' },
-    { codigo: 'LA_SERENA', nombre: 'La Serena' },
-    { codigo: 'VALPARAISO', nombre: 'Valparaíso' },
-    { codigo: 'RANCAGUA', nombre: 'Rancagua' },
-    { codigo: 'CHILLAN', nombre: 'Chillán' },
-    { codigo: 'OSORNO', nombre: 'Osorno' },
-    { codigo: 'PUNTA_ARENAS', nombre: 'Punta Arenas' },
-    { codigo: 'COYHAIQUE', nombre: 'Coyhaique' },
-  ];
-
-  // 🔄 Cotizar envío cuando cambia la comuna o el carrito
-  useEffect(() => {
-    const cotizar = async () => {
-      if (items.length === 0 || !comunaSeleccionada) {
-        setCostoEnvio(null);
-        setErrorEnvio(null);
-        return;
-      }
-
-      setCotizando(true);
-      setErrorEnvio(null);
-
-      try {
-        const res = await fetch('/api/chilexpress/cotizar', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            destinationCountyCode: comunaSeleccionada,
-            weight: pesoTotal.toFixed(2),
-            height: '10',
-            width: '10',
-            length: '10',
-            declaredWorth: valorDeclarado.toString(),
-          }),
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || 'Error al cotizar');
-        }
-
-        if (data.success && data.serviceValue) {
-          setCostoEnvio(parseInt(data.serviceValue));
-          setServicioEnvio(data.serviceDescription);
-          setErrorEnvio(null);
-        } else {
-          throw new Error(data.error || 'No se pudo obtener el costo de envío');
-        }
-      } catch (error) {
-        console.error('Error cotizando:', error);
-        setErrorEnvio(error instanceof Error ? error.message : 'Error al cotizar envío');
-        setCostoEnvio(null);
-      } finally {
-        setCotizando(false);
-      }
-    };
-
-    cotizar();
-  }, [comunaSeleccionada, items, pesoTotal, valorDeclarado]);
-
-  const totalConEnvio = totalPrecio + (costoEnvio || 0);
+  // ✅ El total para Mercado Pago = solo productos (el envío se paga al recibir)
+  const totalSinEnvio = totalPrecio;
 
   const [hydrated, setHydrated] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -196,12 +104,6 @@ export default function CarritoPage() {
         return;
       }
 
-      if (!costoEnvio) {
-        alert('No se pudo obtener el costo de envío. Intenta de nuevo.');
-        setProcesando(false);
-        return;
-      }
-
       const itemsData = items.map(item => ({
         producto_id: item.id,
         nombre: item.nombre,
@@ -220,7 +122,7 @@ export default function CarritoPage() {
           telefono_cliente: form.telefono,
           email_cliente: form.email,
           direccion_envio: form.direccion,
-          total: totalConEnvio,
+          total: totalSinEnvio, // Solo productos
           estado: 'verificando',
           items: itemsData,
           external_reference: externalRef,
@@ -234,6 +136,7 @@ export default function CarritoPage() {
       vaciarCarrito();
       setCheckoutOpen(false);
 
+      // 📦 Items para Mercado Pago (SIN envío)
       const mpItems = items.map(item => ({
         id: item.id,
         nombre: item.nombre,
@@ -241,14 +144,6 @@ export default function CarritoPage() {
         precio: item.precio,
         imagen_url: item.imagen_url,
       }));
-
-      mpItems.push({
-        id: 'shipping',
-        nombre: `Envío Chilexpress - ${servicioEnvio || 'Estándar'}`,
-        cantidad: 1,
-        precio: costoEnvio,
-        imagen_url: '',
-      });
 
       const response = await fetch('/api/create-preference', {
         method: 'POST',
@@ -261,7 +156,7 @@ export default function CarritoPage() {
             email: form.email,
             telefono: form.telefono,
           },
-          total: totalConEnvio,
+          total: totalSinEnvio,
         }),
       });
 
@@ -399,57 +294,64 @@ export default function CarritoPage() {
                   <span>${totalPrecio.toLocaleString()}</span>
                 </div>
 
-                {/* 🌎 Selector de comuna con cotización real Chilexpress */}
+                {/* 🌎 Selector de comuna */}
                 <div className="border-t border-[#F59E0B]/30 my-4 pt-4">
                   <p className="text-sm font-medium mb-2 text-[#F59E0B]">Comuna de destino:</p>
                   <p className="text-xs text-gray-500 mb-2">📦 Envíos desde Talca</p>
-                  {cargandoComunas ? (
-                    <div className="flex items-center gap-2 text-yellow-400 text-sm">
-                      <Loader2 className="w-4 h-4 animate-spin" /> Cargando comunas...
-                    </div>
-                  ) : (
-                    <select
-                      value={comunaSeleccionada}
-                      onChange={(e) => setComunaSeleccionada(e.target.value)}
-                      className="w-full p-2 rounded bg-[#1E1E1E] border border-gray-600 text-white text-sm"
-                      disabled={cotizando}
-                    >
-                      {comunas.length > 0 ? (
-                        comunas.map((comuna) => (
-                          <option key={comuna.codigo} value={comuna.codigo}>
-                            {comuna.nombre} {comuna.region ? `(${comuna.region})` : ''}
-                          </option>
-                        ))
-                      ) : (
-                        <option value="">No hay comunas disponibles</option>
-                      )}
-                    </select>
-                  )}
-                  {cotizando && (
-                    <div className="flex items-center gap-2 mt-2 text-yellow-400 text-sm">
-                      <Loader2 className="w-4 h-4 animate-spin" /> Cotizando envío...
-                    </div>
-                  )}
-                  {errorEnvio && (
-                    <p className="text-red-400 text-xs mt-2">{errorEnvio}</p>
-                  )}
-                  {costoEnvio !== null && !cotizando && !errorEnvio && (
-                    <p className="text-green-400 text-xs mt-2">
-                      ✅ {servicioEnvio || 'Envío'} - ${costoEnvio.toLocaleString()}
-                    </p>
-                  )}
+                  <select
+                    value={comunaSeleccionada}
+                    onChange={(e) => setComunaSeleccionada(e.target.value)}
+                    className="w-full p-2 rounded bg-[#1E1E1E] border border-gray-600 text-white text-sm"
+                  >
+                    {comunasDestino.map((comuna) => (
+                      <option key={comuna.codigo} value={comuna.codigo}>
+                        {comuna.nombre}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                <div className="flex justify-between">
-                  <span>Envío</span>
-                  <span>{costoEnvio !== null ? `$${costoEnvio.toLocaleString()}` : 'Cotizando...'}</span>
+                {/* 🚚 Selector de empresa de envío (solo logos, sin precios) */}
+                <div className="border-t border-[#F59E0B]/30 my-4 pt-4">
+                  <p className="text-sm font-medium mb-2 text-[#F59E0B]">Empresa de envío:</p>
+                  <div className="flex gap-4">
+                    {opcionesEnvio.map((opcion) => (
+                      <button
+                        key={opcion.id}
+                        onClick={() => setMetodoEnvio(opcion.id)}
+                        className={`flex-1 p-2 rounded-lg border-2 transition-all ${
+                          metodoEnvio === opcion.id
+                            ? 'border-[#EC4899] bg-[#EC4899]/10'
+                            : 'border-gray-600 hover:border-gray-400'
+                        }`}
+                      >
+                        <Image
+                          src={opcion.logo}
+                          alt={opcion.nombre}
+                          width={80}
+                          height={40}
+                          className="mx-auto object-contain"
+                          style={{ maxHeight: '40px' }}
+                        />
+                        <p className="text-xs text-center mt-1">{opcion.nombre}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 💡 Mensaje de envío por pagar */}
+                <div className="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-lg">
+                  <p className="text-xs text-yellow-400 text-center">
+                    💡 El costo de envío se pagará al momento de la entrega.
+                  </p>
                 </div>
 
                 <div className="border-t border-[#F59E0B]/30 my-4 pt-4">
                   <div className="flex justify-between text-xl text-white font-medium">
-                    <span>Total</span>
-                    <span>${totalConEnvio.toLocaleString()}</span>
+                    <span>Total a pagar ahora</span>
+                    <span>${totalSinEnvio.toLocaleString()}</span>
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">* El envío se pagará al recibir el pedido.</p>
                 </div>
               </div>
 
@@ -461,12 +363,7 @@ export default function CarritoPage() {
                   }
                   setCheckoutOpen(true);
                 }}
-                disabled={costoEnvio === null || cotizando || cargandoComunas}
-                className={`w-full py-3 rounded-lg font-medium transition-colors mt-4 ${
-                  costoEnvio === null || cotizando || cargandoComunas
-                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                    : 'bg-[#EC4899] text-white hover:bg-[#F59E0B]'
-                }`}
+                className="w-full bg-[#EC4899] text-white py-3 rounded-lg font-medium hover:bg-[#F59E0B] transition-colors mt-4"
               >
                 Finalizar compra
               </button>
@@ -540,7 +437,7 @@ export default function CarritoPage() {
 
               <div className="bg-[#2D2D2D] p-3 rounded-lg border border-yellow-500/30">
                 <p className="text-xs text-yellow-400 text-center">
-                  💡 El costo de envío es calculado en tiempo real con Chilexpress desde Talca.
+                  💡 El total a pagar ahora corresponde solo a los productos. El envío se pagará al recibir.
                 </p>
               </div>
 
@@ -554,7 +451,7 @@ export default function CarritoPage() {
                     <Loader2 className="w-5 h-5 animate-spin" /> Procesando...
                   </>
                 ) : (
-                  `Pagar $${totalConEnvio.toLocaleString()}`
+                  `Pagar $${totalSinEnvio.toLocaleString()} (sin envío)`
                 )}
               </button>
             </form>
