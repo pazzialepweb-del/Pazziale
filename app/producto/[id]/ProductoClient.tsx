@@ -225,7 +225,7 @@ export default function ProductoClient() {
                 alt={`${producto.nombre} - Pazziale`}
                 width={600}
                 height={600}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain" // <- CAMBIADO a object-contain
                 priority
                 unoptimized={producto.imagen_url.startsWith('http')}
               />
@@ -303,7 +303,8 @@ export default function ProductoClient() {
                       alt={`${similar.nombre} - Pazziale`}
                       width={300}
                       height={300}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
+                      //                      ↑ CAMBIADO a object-contain
                       unoptimized={similar.imagen_url.startsWith('http')}
                       loading="lazy"
                     />
