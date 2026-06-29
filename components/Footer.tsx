@@ -13,7 +13,6 @@ export default function Footer() {
         <div>
           <h5 className="font-medium mb-4 text-[#F59E0B]">Contacto</h5>
           <ul className="space-y-3 text-gray-400 text-sm">
-            {/* ✅ Teléfono actualizado con espacios */}
             <li className="flex items-center gap-2 hover:text-white transition-colors">
               <Phone className="w-4 h-4 text-[#EC4899]"/> +56 9 3665 9341
             </li>
@@ -36,11 +35,27 @@ export default function Footer() {
         <div>
           <h5 className="font-medium mb-4 text-[#F59E0B]">Sígueme</h5>
           <div className="flex gap-4">
-            <a href="#" className="w-10 h-10 rounded-full border border-[#F59E0B]/30 flex items-center justify-center hover:border-[#EC4899] hover:text-[#EC4899] hover:bg-[#EC4899]/10 transition-all">
-              <span className="text-xl">📸</span>
-            </a>
-            <a href="#" className="w-10 h-10 rounded-full border border-[#F59E0B]/30 flex items-center justify-center hover:border-[#EC4899] hover:text-[#EC4899] hover:bg-[#EC4899]/10 transition-all">
-              <span className="text-xl">👍</span>
+            <a
+              href="https://www.instagram.com/pazziale_orfebre/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-full border border-[#F59E0B]/30 flex items-center justify-center hover:border-[#EC4899] hover:text-[#EC4899] hover:bg-[#EC4899]/10 transition-all"
+              aria-label="Instagram"
+            >
+              {/* SVG de Instagram (color actual) */}
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                viewBox="0 0 24 24"
+              >
+                <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+              </svg>
             </a>
           </div>
         </div>
