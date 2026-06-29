@@ -99,7 +99,6 @@ export default function TiendaClient() {
         </div>
       )}
 
-      {/* ✅ Contenedor principal con breadcrumbs en la parte superior */}
       <main className="pt-32 pb-16 px-6">
         <div className="max-w-7xl mx-auto">
           {/* Breadcrumbs */}
@@ -150,13 +149,13 @@ export default function TiendaClient() {
                   className="group bg-[#2D2D2D] p-4 rounded-xl border border-[#F59E0B]/30 hover:border-[#EC4899] transition-all duration-300"
                 >
                   <Link href={`/producto/${producto.id}`} className="block">
-                    <div className="aspect-square overflow-hidden rounded-lg bg-[#1E1E1E] mb-4 relative">
+                    <div className="aspect-square overflow-hidden rounded-lg bg-[#1E1E1E] mb-4 relative flex items-center justify-center">
                       <Image
                         src={producto.imagen_url}
                         alt={`${producto.nombre} - Joyería Pazziale`}
                         width={400}
                         height={400}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
                         unoptimized={producto.imagen_url.startsWith('http')}
                         loading="lazy"
                       />
