@@ -28,7 +28,6 @@ export default function ProductoClient() {
   const router = useRouter();
   const { agregarAlCarrito } = useCarrito();
 
-  // ⚠️ useParams devuelve { id?: string } pero a veces puede ser undefined
   const id = params?.id as string | undefined;
 
   const [producto, setProducto] = useState<Producto | null>(null);
@@ -38,14 +37,11 @@ export default function ProductoClient() {
   const [mensajeExito, setMensajeExito] = useState<string | null>(null);
 
   useEffect(() => {
-    // Si el ID es inválido, mostramos error y no hacemos fetch
     if (!id || id === 'undefined' || id === 'null' || id.trim() === '') {
       setError('ID de producto no válido');
       setLoading(false);
       return;
     }
-
-    // Solo si id es válido, ejecutamos el fetch
     fetchProducto();
   }, [id]);
 
@@ -54,11 +50,9 @@ export default function ProductoClient() {
       setLoading(true);
       setError('');
 
-      // ✅ Ahora TypeScript sabe que id no es undefined porque ya lo validamos en el useEffect
-      // Pero usamos una aserción para seguridad
       const productoId = id as string;
       const encodedId = encodeURIComponent(productoId);
-      const url = `https://lcdhazkemkyktfrqjtka.supabase.co/rest/v1/productos?id=eq.${encodedId}`; // ✅ URL corregida
+      const url = `https://lcdhazkemkyktfrqjtka.supabase.co/rest/v1/productos?id=eq.${encodedId}`;
 
       const response = await fetch(url, {
         headers: {
@@ -152,7 +146,6 @@ export default function ProductoClient() {
     }
   };
 
-  // ⏳ Estado de carga
   if (loading) {
     return (
       <div className="min-h-screen bg-[#1E1E1E] text-white">
@@ -165,7 +158,6 @@ export default function ProductoClient() {
     );
   }
 
-  // ❌ Error o producto no encontrado
   if (error || !producto) {
     return (
       <div className="min-h-screen bg-[#1E1E1E] text-white">
@@ -181,7 +173,6 @@ export default function ProductoClient() {
     );
   }
 
-  // ✅ Producto cargado correctamente
   return (
     <div className="min-h-screen bg-[#1E1E1E] text-white">
       <Navbar />
@@ -219,16 +210,23 @@ export default function ProductoClient() {
 
         <article className="grid md:grid-cols-2 gap-12 mb-16">
           <div className="bg-[#2D2D2D] rounded-2xl overflow-hidden border border-[#F59E0B]/30 p-4">
-            <div className="aspect-square rounded-xl overflow-hidden relative">
+            <div className="aspect-square rounded-xl overflow-hidden relative flex items-center justify-center bg-[#1E1E1E]">
               <Image
                 src={producto.imagen_url}
                 alt={`${producto.nombre} - Pazziale`}
                 width={600}
                 height={600}
-                className="w-full h-full object-contain" // <- CAMBIADO a object-contain
+                className="w-full h-full object-contain"
                 priority
                 unoptimized={producto.imagen_url.startsWith('http')}
               />
+              {producto.stock === 0 && (
+                <div className="absolute inset-0 bg-black/70 flex items-center justify-center backdrop-blur-sm">
+                  <span className="text-white font-bold text-4xl border-4 border-red-500 px-8 py-4 rounded-xl shadow-lg shadow-red-500/60 bg-red-600/90">
+                    Agotado
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -297,14 +295,13 @@ export default function ProductoClient() {
                   href={`/producto/${similar.id}`}
                   className="group bg-[#2D2D2D] p-3 rounded-lg border border-[#F59E0B]/30 hover:border-[#EC4899] transition-all duration-300 block"
                 >
-                  <div className="aspect-square overflow-hidden rounded-lg bg-[#1E1E1E] mb-3 relative">
+                  <div className="aspect-square overflow-hidden rounded-lg bg-[#1E1E1E] mb-3 relative flex items-center justify-center">
                     <Image
                       src={similar.imagen_url}
                       alt={`${similar.nombre} - Pazziale`}
                       width={300}
                       height={300}
                       className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
-                      //                      ↑ CAMBIADO a object-contain
                       unoptimized={similar.imagen_url.startsWith('http')}
                       loading="lazy"
                     />

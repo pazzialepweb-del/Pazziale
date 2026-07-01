@@ -87,7 +87,7 @@ export default function TiendaClient() {
     <div className="min-h-screen bg-[#1E1E1E] text-white">
       <Navbar />
 
-      {/* ✅ Mensaje de éxito flotante */}
+      {/* Mensaje de éxito flotante */}
       {mensajeExito && (
         <div
           className="fixed top-24 right-6 z-50 bg-[#2D2D2D] border border-[#F59E0B] text-white px-6 py-3 rounded-lg shadow-2xl animate-fade-in-up flex items-center gap-2"
@@ -159,9 +159,10 @@ export default function TiendaClient() {
                         unoptimized={producto.imagen_url.startsWith('http')}
                         loading="lazy"
                       />
+                      {/* Etiqueta "Agotado" más prominente */}
                       {producto.stock === 0 && (
-                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                          <span className="text-red-400 font-medium border border-red-400 px-3 py-1 rounded-full text-sm">
+                        <div className="absolute inset-0 bg-black/70 flex items-center justify-center backdrop-blur-sm">
+                          <span className="text-white font-bold text-2xl border-2 border-red-500 px-6 py-3 rounded-lg shadow-lg shadow-red-500/50 bg-red-600/80">
                             Agotado
                           </span>
                         </div>

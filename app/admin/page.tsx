@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
-import { Trash2, Edit, Plus, X, Loader2 } from 'lucide-react';
+import { Trash2, Edit, Plus, X, Loader2, MinusCircle, PlusCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface Producto {
@@ -39,14 +39,14 @@ export default function AdminPage() {
   const [esAdmin, setEsAdmin] = useState(false);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
-  const [filtroCategoria, setFiltroCategoria] = useState<string>('Todos'); // ✅ Nuevo estado para el filtro
-  
+  const [filtroCategoria, setFiltroCategoria] = useState<string>('Todos');
+
   const [modalProductoOpen, setModalProductoOpen] = useState(false);
   const [modalPedidoOpen, setModalPedidoOpen] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [subiendo, setSubiendo] = useState(false);
   const [actualizandoPedido, setActualizandoPedido] = useState(false);
-  
+
   // Formulario de productos
   const [formProducto, setFormProducto] = useState({
     nombre: '',
@@ -56,14 +56,14 @@ export default function AdminPage() {
     categoria: '',
     stock: '',
     dimensiones: '',
-    imagen: null as File | null
+    imagen: null as File | null,
   });
 
   // Formulario de pedidos
   const [formPedido, setFormPedido] = useState({
     estado: 'verificando',
     metodo_envio: '',
-    numero_seguimiento: ''
+    numero_seguimiento: '',
   });
 
   const router = useRouter();
@@ -72,7 +72,6 @@ export default function AdminPage() {
     verificarAdmin();
   }, []);
 
-  // ✅ Efecto para cargar productos cuando cambia el filtro de categoría
   useEffect(() => {
     if (esAdmin) {
       cargarProductos();
@@ -94,7 +93,7 @@ export default function AdminPage() {
 
       setEsAdmin(true);
       setLoading(false);
-      await Promise.all([cargarProductos(), cargarPedidos()]); // Cargar ambos al iniciar
+      await Promise.all([cargarProductos(), cargarPedidos()]);
     } catch (error) {
       console.error('Error verificando admin:', error);
       router.push('/auth/login');
@@ -103,11 +102,10 @@ export default function AdminPage() {
     }
   }
 
-  // ✅ Función separada para cargar solo productos
   async function cargarProductos() {
     try {
       let query = supabase.from('productos').select('*');
-      
+
       if (filtroCategoria !== 'Todos') {
         query = query.eq('categoria', filtroCategoria);
       }
@@ -120,7 +118,6 @@ export default function AdminPage() {
     }
   }
 
-  // ✅ Función separada para cargar pedidos
   async function cargarPedidos() {
     try {
       const { data: pedidosData, error: pedidosError } = await supabase
@@ -131,6 +128,38 @@ export default function AdminPage() {
       setPedidos(pedidosData || []);
     } catch (error) {
       console.error('Error cargando pedidos:', error);
+    }
+  }
+
+  // 🚀 FUNCIÓN PARA AJUSTAR STOCK
+  async function handleAjustarStock(productoId: string, cambio: number) {
+    try {
+      const producto = productos.find(p => p.id === productoId);
+      if (!producto) return;
+
+      const nuevoStock = producto.stock + cambio;
+      if (nuevoStock < 0) {
+        alert('❌ El stock no puede quedar por debajo de 0.');
+        return;
+      }
+
+      // Actualizar en Supabase
+      const { error } = await supabase
+        .from('productos')
+        .update({ stock: nuevoStock })
+        .eq('id', productoId);
+
+      if (error) throw error;
+
+      // Actualizar el estado local para reflejar el cambio instantáneamente
+      setProductos(prev =>
+        prev.map(p =>
+          p.id === productoId ? { ...p, stock: nuevoStock } : p
+        )
+      );
+    } catch (error) {
+      console.error('Error ajustando stock:', error);
+      alert('Error al ajustar el stock. Intenta de nuevo.');
     }
   }
 
@@ -156,15 +185,16 @@ export default function AdminPage() {
     setSubiendo(true);
 
     try {
-      let imagen_url = editandoId 
-        ? productos.find(p => p.id === editandoId)?.imagen_url || '' 
+      let imagen_url = editandoId
+        ? productos.find(p => p.id === editandoId)?.imagen_url || ''
         : '';
 
       if (formProducto.imagen) {
         imagen_url = await subirImagen(formProducto.imagen);
       }
 
-      const precioOfertaVal = formProducto.precio_oferta.trim() === '' ? null : parseFloat(formProducto.precio_oferta);
+      const precioOfertaVal =
+        formProducto.precio_oferta.trim() === '' ? null : parseFloat(formProducto.precio_oferta);
 
       const productoData = {
         nombre: formProducto.nombre,
@@ -174,7 +204,7 @@ export default function AdminPage() {
         categoria: formProducto.categoria,
         imagen_url: imagen_url,
         stock: parseInt(formProducto.stock) || 0,
-        dimensiones: formProducto.dimensiones
+        dimensiones: formProducto.dimensiones,
       };
 
       if (editandoId) {
@@ -184,9 +214,7 @@ export default function AdminPage() {
           .eq('id', editandoId);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('productos')
-          .insert([productoData]);
+        const { error } = await supabase.from('productos').insert([productoData]);
         if (error) throw error;
       }
 
@@ -205,11 +233,8 @@ export default function AdminPage() {
 
     try {
       const producto = productos.find(p => p.id === id);
-      
-      const { error } = await supabase
-        .from('productos')
-        .delete()
-        .eq('id', id);
+
+      const { error } = await supabase.from('productos').delete().eq('id', id);
       if (error) throw error;
 
       if (producto?.imagen_url) {
@@ -237,7 +262,7 @@ export default function AdminPage() {
         categoria: producto.categoria,
         stock: producto.stock.toString(),
         dimensiones: producto.dimensiones || '',
-        imagen: null
+        imagen: null,
       });
     } else {
       setEditandoId(null);
@@ -249,7 +274,7 @@ export default function AdminPage() {
         categoria: '',
         stock: '',
         dimensiones: '',
-        imagen: null
+        imagen: null,
       });
     }
     setModalProductoOpen(true);
@@ -266,7 +291,7 @@ export default function AdminPage() {
       categoria: '',
       stock: '',
       dimensiones: '',
-      imagen: null
+      imagen: null,
     });
   }
 
@@ -278,14 +303,14 @@ export default function AdminPage() {
       setFormPedido({
         estado: pedido.estado,
         metodo_envio: pedido.metodo_envio || '',
-        numero_seguimiento: pedido.numero_seguimiento || ''
+        numero_seguimiento: pedido.numero_seguimiento || '',
       });
     } else {
       setEditandoId(null);
       setFormPedido({
         estado: 'verificando',
         metodo_envio: '',
-        numero_seguimiento: ''
+        numero_seguimiento: '',
       });
     }
     setModalPedidoOpen(true);
@@ -297,7 +322,7 @@ export default function AdminPage() {
     setFormPedido({
       estado: 'verificando',
       metodo_envio: '',
-      numero_seguimiento: ''
+      numero_seguimiento: '',
     });
   }
 
@@ -313,7 +338,7 @@ export default function AdminPage() {
           estado: formPedido.estado,
           metodo_envio: formPedido.metodo_envio || null,
           numero_seguimiento: formPedido.numero_seguimiento || null,
-          fecha_actualizacion: new Date().toISOString()
+          fecha_actualizacion: new Date().toISOString(),
         })
         .eq('id', editandoId)
         .select();
@@ -330,9 +355,11 @@ export default function AdminPage() {
       router.refresh();
     } catch (error) {
       console.error('💥 Error completo en catch:', error);
-      alert('Error al actualizar pedido:\n\n' + 
-        (error instanceof Error ? error.message : 'Error desconocido') + 
-        '\n\nRevisa la consola del navegador para más detalles.');
+      alert(
+        'Error al actualizar pedido:\n\n' +
+          (error instanceof Error ? error.message : 'Error desconocido') +
+          '\n\nRevisa la consola del navegador para más detalles.'
+      );
     } finally {
       setActualizandoPedido(false);
     }
@@ -354,10 +381,7 @@ export default function AdminPage() {
         return;
       }
 
-      const { error } = await supabase
-        .from('pedidos')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from('pedidos').delete().eq('id', id);
 
       if (error) {
         console.error('❌ Error de Supabase al eliminar:', error);
@@ -367,7 +391,6 @@ export default function AdminPage() {
       setPedidos(prev => prev.filter(p => p.id !== id));
       await cargarPedidos();
       console.log('✅ Datos recargados correctamente');
-
     } catch (error) {
       console.error('💥 Error eliminando pedido:', error);
       alert('Error al eliminar pedido:\n\n' + (error instanceof Error ? error.message : 'Error desconocido'));
@@ -376,32 +399,37 @@ export default function AdminPage() {
 
   const getEstadoColor = (estado: string) => {
     switch (estado) {
-      case 'verificando': return 'bg-yellow-500/20 text-yellow-400 border-yellow-400';
-      case 'verificado': return 'bg-blue-500/20 text-blue-400 border-blue-400';
-      case 'en envío': return 'bg-[#F59E0B]/20 text-[#F59E0B] border-[#F59E0B]';
-      case 'recibido': return 'bg-green-500/20 text-green-400 border-green-400';
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-400';
+      case 'verificando':
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-400';
+      case 'verificado':
+        return 'bg-blue-500/20 text-blue-400 border-blue-400';
+      case 'en envío':
+        return 'bg-[#F59E0B]/20 text-[#F59E0B] border-[#F59E0B]';
+      case 'recibido':
+        return 'bg-green-500/20 text-green-400 border-green-400';
+      default:
+        return 'bg-gray-500/20 text-gray-400 border-gray-400';
     }
   };
 
-  // ✅ Obtener categorías únicas para el filtro
   const categoriasFiltro = ['Todos', ...new Set(productos.map(p => p.categoria))];
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#1E1E1E] text-white">
-      <Navbar />
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="w-12 h-12 animate-spin text-[#EC4899]" />
+  if (loading)
+    return (
+      <div className="min-h-screen bg-[#1E1E1E] text-white">
+        <Navbar />
+        <div className="flex items-center justify-center h-screen">
+          <Loader2 className="w-12 h-12 animate-spin text-[#EC4899]" />
+        </div>
       </div>
-    </div>
-  );
-  
+    );
+
   if (!esAdmin) return null;
 
   return (
     <div className="min-h-screen bg-[#1E1E1E] text-white pb-20">
       <Navbar />
-      
+
       <div className="pt-24 px-4 md:px-8">
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
           <h1 className="text-4xl font-serif text-white">Panel de Administración</h1>
@@ -412,7 +440,7 @@ export default function AdminPage() {
             <Plus className="w-5 h-5" /> Agregar Producto
           </button>
         </div>
-        
+
         {/* Estadísticas */}
         <div className="grid md:grid-cols-4 gap-6 mb-10">
           <div className="bg-[#2D2D2D] p-6 rounded-lg border border-[#F59E0B]/30">
@@ -449,20 +477,24 @@ export default function AdminPage() {
               </tr>
             </thead>
             <tbody>
-              {pedidos.map((pedido) => (
+              {pedidos.map(pedido => (
                 <tr key={pedido.id} className="border-b border-[#F59E0B]/20 hover:bg-[#1E1E1E] transition-colors">
                   <td className="p-4 font-mono text-xs text-gray-400">{pedido.id.slice(0, 8)}</td>
                   <td className="p-4">{pedido.nombre_cliente || 'Sin nombre'}</td>
                   <td className="p-4 text-[#EC4899] font-medium">${pedido.total.toLocaleString()}</td>
                   <td className="p-4 text-sm text-gray-400 max-w-[150px] truncate">{pedido.direccion_envio}</td>
                   <td className="p-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getEstadoColor(pedido.estado)}`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium border ${getEstadoColor(pedido.estado)}`}
+                    >
                       {pedido.estado}
                     </span>
                   </td>
                   <td className="p-4 text-sm text-gray-400">
                     {pedido.metodo_envio || '—'}
-                    {pedido.numero_seguimiento && <span className="block text-[#F59E0B] text-xs">{pedido.numero_seguimiento}</span>}
+                    {pedido.numero_seguimiento && (
+                      <span className="block text-[#F59E0B] text-xs">{pedido.numero_seguimiento}</span>
+                    )}
                   </td>
                   <td className="p-4 text-right flex justify-end gap-2">
                     <button
@@ -484,17 +516,14 @@ export default function AdminPage() {
               ))}
             </tbody>
           </table>
-          {pedidos.length === 0 && (
-            <div className="text-center py-12 text-gray-400">No hay pedidos registrados.</div>
-          )}
+          {pedidos.length === 0 && <div className="text-center py-12 text-gray-400">No hay pedidos registrados.</div>}
         </div>
 
         {/* --- LISTA DE PRODUCTOS --- */}
         <h2 className="text-2xl font-serif mb-4 text-[#EC4899]">Gestión de Productos</h2>
-        
-        {/* ✅ NUEVOS FILTROS DE CATEGORÍA */}
+
         <div className="flex flex-wrap justify-center gap-3 mb-6">
-          {categoriasFiltro.map((cat) => (
+          {categoriasFiltro.map(cat => (
             <button
               key={cat}
               onClick={() => setFiltroCategoria(cat)}
@@ -518,18 +547,18 @@ export default function AdminPage() {
                 <th className="p-4 hidden md:table-cell">Categoría</th>
                 <th className="p-4">Precio</th>
                 <th className="p-4 hidden md:table-cell">Oferta</th>
-                <th className="p-4 hidden md:table-cell">Stock</th>
+                <th className="p-4">Stock</th>
                 <th className="p-4 hidden md:table-cell">Dimensiones</th>
                 <th className="p-4 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {productos.map((producto) => (
+              {productos.map(producto => (
                 <tr key={producto.id} className="border-b border-[#F59E0B]/20 hover:bg-[#1E1E1E] transition-colors">
                   <td className="p-4">
-                    <img 
-                      src={producto.imagen_url} 
-                      alt={producto.nombre} 
+                    <img
+                      src={producto.imagen_url}
+                      alt={producto.nombre}
                       className="w-12 h-12 rounded-lg object-cover border border-[#F59E0B]/30"
                     />
                   </td>
@@ -539,8 +568,31 @@ export default function AdminPage() {
                   <td className="p-4 hidden md:table-cell text-[#EC4899] font-medium">
                     {producto.precio_oferta ? `$${producto.precio_oferta.toLocaleString()}` : '—'}
                   </td>
-                  <td className="p-4 hidden md:table-cell text-[#F59E0B] font-medium">{producto.stock}</td>
-                  <td className="p-4 hidden md:table-cell text-gray-400 text-sm truncate max-w-[150px]">{producto.dimensiones}</td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleAjustarStock(producto.id, -1)}
+                        className="p-1 rounded hover:bg-red-500/20 text-red-400 transition-colors"
+                        title="Restar 1 unidad"
+                        disabled={producto.stock <= 0}
+                      >
+                        <MinusCircle className="w-4 h-4" />
+                      </button>
+                      <span className="text-[#F59E0B] font-medium w-8 text-center">
+                        {producto.stock}
+                      </span>
+                      <button
+                        onClick={() => handleAjustarStock(producto.id, 1)}
+                        className="p-1 rounded hover:bg-green-500/20 text-green-400 transition-colors"
+                        title="Agregar 1 unidad"
+                      >
+                        <PlusCircle className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                  <td className="p-4 hidden md:table-cell text-gray-400 text-sm truncate max-w-[150px]">
+                    {producto.dimensiones}
+                  </td>
                   <td className="p-4 text-right flex justify-end gap-2">
                     <button
                       onClick={() => abrirModalProducto(producto)}
@@ -577,26 +629,28 @@ export default function AdminPage() {
             >
               <X className="w-6 h-6" />
             </button>
-            
-            <h2 className="text-2xl font-serif mb-6 text-white">{editandoId ? 'Editar' : 'Agregar'} Producto</h2>
-            
+
+            <h2 className="text-2xl font-serif mb-6 text-white">
+              {editandoId ? 'Editar' : 'Agregar'} Producto
+            </h2>
+
             <form onSubmit={handleSubmitProducto} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1 text-gray-300">Nombre</label>
                 <input
                   type="text"
                   value={formProducto.nombre}
-                  onChange={(e) => setFormProducto({...formProducto, nombre: e.target.value})}
+                  onChange={e => setFormProducto({ ...formProducto, nombre: e.target.value })}
                   className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
                   required
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-1 text-gray-300">Descripción</label>
                 <textarea
                   value={formProducto.descripcion}
-                  onChange={(e) => setFormProducto({...formProducto, descripcion: e.target.value})}
+                  onChange={e => setFormProducto({ ...formProducto, descripcion: e.target.value })}
                   className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white min-h-[80px]"
                   required
                 />
@@ -608,7 +662,7 @@ export default function AdminPage() {
                   <input
                     type="number"
                     value={formProducto.precio}
-                    onChange={(e) => setFormProducto({...formProducto, precio: e.target.value})}
+                    onChange={e => setFormProducto({ ...formProducto, precio: e.target.value })}
                     className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
                     required
                   />
@@ -618,7 +672,7 @@ export default function AdminPage() {
                   <input
                     type="number"
                     value={formProducto.precio_oferta}
-                    onChange={(e) => setFormProducto({...formProducto, precio_oferta: e.target.value})}
+                    onChange={e => setFormProducto({ ...formProducto, precio_oferta: e.target.value })}
                     className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
                     placeholder="Dejar vacío para sin oferta"
                   />
@@ -630,7 +684,7 @@ export default function AdminPage() {
                   <label className="block text-sm font-medium mb-1 text-gray-300">Categoría</label>
                   <select
                     value={formProducto.categoria}
-                    onChange={(e) => setFormProducto({...formProducto, categoria: e.target.value})}
+                    onChange={e => setFormProducto({ ...formProducto, categoria: e.target.value })}
                     className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
                     required
                   >
@@ -648,7 +702,7 @@ export default function AdminPage() {
                   <input
                     type="number"
                     value={formProducto.stock}
-                    onChange={(e) => setFormProducto({...formProducto, stock: e.target.value})}
+                    onChange={e => setFormProducto({ ...formProducto, stock: e.target.value })}
                     className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
                     required
                     min="0"
@@ -662,7 +716,7 @@ export default function AdminPage() {
                   <input
                     type="text"
                     value={formProducto.dimensiones}
-                    onChange={(e) => setFormProducto({...formProducto, dimensiones: e.target.value})}
+                    onChange={e => setFormProducto({ ...formProducto, dimensiones: e.target.value })}
                     className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
                     placeholder="Ej: 5cm x 3cm x 1cm, Peso: 2g"
                   />
@@ -673,7 +727,9 @@ export default function AdminPage() {
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => setFormProducto({...formProducto, imagen: e.target.files?.[0] || null})}
+                    onChange={e =>
+                      setFormProducto({ ...formProducto, imagen: e.target.files?.[0] || null })
+                    }
                     className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:bg-[#EC4899] file:text-white file:font-medium hover:file:bg-[#F59E0B]"
                   />
                   {!editandoId && !formProducto.imagen && (
@@ -694,8 +750,10 @@ export default function AdminPage() {
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" /> Guardando...
                   </>
+                ) : editandoId ? (
+                  'Actualizar Producto'
                 ) : (
-                  editandoId ? 'Actualizar Producto' : 'Crear Producto'
+                  'Crear Producto'
                 )}
               </button>
             </form>
@@ -713,15 +771,15 @@ export default function AdminPage() {
             >
               <X className="w-6 h-6" />
             </button>
-            
+
             <h2 className="text-2xl font-serif mb-6 text-white">Actualizar Pedido</h2>
-            
+
             <form onSubmit={handleSubmitPedido} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1 text-gray-300">Estado del pedido</label>
                 <select
                   value={formPedido.estado}
-                  onChange={(e) => setFormPedido({...formPedido, estado: e.target.value})}
+                  onChange={e => setFormPedido({ ...formPedido, estado: e.target.value })}
                   className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
                   required
                 >
@@ -736,7 +794,7 @@ export default function AdminPage() {
                 <label className="block text-sm font-medium mb-1 text-gray-300">Empresa de envío</label>
                 <select
                   value={formPedido.metodo_envio}
-                  onChange={(e) => setFormPedido({...formPedido, metodo_envio: e.target.value})}
+                  onChange={e => setFormPedido({ ...formPedido, metodo_envio: e.target.value })}
                   className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
                 >
                   <option value="">Seleccionar</option>
@@ -753,7 +811,7 @@ export default function AdminPage() {
                 <input
                   type="text"
                   value={formPedido.numero_seguimiento}
-                  onChange={(e) => setFormPedido({...formPedido, numero_seguimiento: e.target.value})}
+                  onChange={e => setFormPedido({ ...formPedido, numero_seguimiento: e.target.value })}
                   className="w-full p-2 rounded bg-[#2D2D2D] border border-gray-600 focus:border-[#EC4899] outline-none text-white"
                   placeholder="Ej: CHX123456789"
                 />

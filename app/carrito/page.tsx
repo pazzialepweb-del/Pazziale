@@ -11,39 +11,6 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
-// 📦 COMUNAS (lista estática para el selector)
-const comunasDestino = [
-  { codigo: 'PROV', nombre: 'Providencia' },
-  { codigo: 'SANTIAGO', nombre: 'Santiago Centro' },
-  { codigo: 'LAS_CONDES', nombre: 'Las Condes' },
-  { codigo: 'NUNOA', nombre: 'Ñuñoa' },
-  { codigo: 'VITACURA', nombre: 'Vitacura' },
-  { codigo: 'TALCA', nombre: 'Talca' },
-  { codigo: 'CURICO', nombre: 'Curicó' },
-  { codigo: 'LINARES', nombre: 'Linares' },
-  { codigo: 'CONCEPCION', nombre: 'Concepción' },
-  { codigo: 'TEMUCO', nombre: 'Temuco' },
-  { codigo: 'VALDIVIA', nombre: 'Valdivia' },
-  { codigo: 'PUERTO_MONTT', nombre: 'Puerto Montt' },
-  { codigo: 'ARICA', nombre: 'Arica' },
-  { codigo: 'IQUIQUE', nombre: 'Iquique' },
-  { codigo: 'ANTOFAGASTA', nombre: 'Antofagasta' },
-  { codigo: 'COPIAPO', nombre: 'Copiapó' },
-  { codigo: 'LA_SERENA', nombre: 'La Serena' },
-  { codigo: 'VALPARAISO', nombre: 'Valparaíso' },
-  { codigo: 'RANCAGUA', nombre: 'Rancagua' },
-  { codigo: 'CHILLAN', nombre: 'Chillán' },
-  { codigo: 'OSORNO', nombre: 'Osorno' },
-  { codigo: 'PUNTA_ARENAS', nombre: 'Punta Arenas' },
-  { codigo: 'COYHAIQUE', nombre: 'Coyhaique' },
-];
-
-// 🚚 OPCIONES DE ENVÍO (solo nombres y logos)
-const opcionesEnvio = [
-  { id: 'chilexpress', nombre: 'Chilexpress', logo: '/images/chilexpress.jpg' },
-  { id: 'starken', nombre: 'Starken', logo: '/images/starken.jpg' },
-];
-
 export default function CarritoPage() {
   const {
     items,
@@ -55,11 +22,6 @@ export default function CarritoPage() {
     vaciarCarrito,
   } = useCarrito();
 
-  // 🌎 Estado para envío (solo selección de comuna y empresa)
-  const [comunaSeleccionada, setComunaSeleccionada] = useState<string>('PROV');
-  const [metodoEnvio, setMetodoEnvio] = useState<string>('chilexpress');
-
-  // ✅ El total para Mercado Pago = solo productos (el envío se paga al recibir)
   const totalSinEnvio = totalPrecio;
 
   const [hydrated, setHydrated] = useState(false);
@@ -122,7 +84,7 @@ export default function CarritoPage() {
           telefono_cliente: form.telefono,
           email_cliente: form.email,
           direccion_envio: form.direccion,
-          total: totalSinEnvio, // Solo productos
+          total: totalSinEnvio,
           estado: 'verificando',
           items: itemsData,
           external_reference: externalRef,
@@ -136,7 +98,6 @@ export default function CarritoPage() {
       vaciarCarrito();
       setCheckoutOpen(false);
 
-      // 📦 Items para Mercado Pago (SIN envío)
       const mpItems = items.map(item => ({
         id: item.id,
         nombre: item.nombre,
@@ -166,6 +127,14 @@ export default function CarritoPage() {
       }
 
       const preference = await response.json();
+
+      // ✅ Guardar external_reference en localStorage para la página de éxito
+      if (preference.external_reference) {
+        localStorage.setItem('ultimo_pedido_external_ref', preference.external_reference);
+      } else {
+        // fallback: usar el que generamos localmente
+        localStorage.setItem('ultimo_pedido_external_ref', externalRef);
+      }
 
       if (preference.init_point) {
         window.location.href = preference.init_point;
@@ -294,52 +263,6 @@ export default function CarritoPage() {
                   <span>${totalPrecio.toLocaleString()}</span>
                 </div>
 
-                {/* 🌎 Selector de comuna */}
-                <div className="border-t border-[#F59E0B]/30 my-4 pt-4">
-                  <p className="text-sm font-medium mb-2 text-[#F59E0B]">Comuna de destino:</p>
-                  <p className="text-xs text-gray-500 mb-2">📦 Envíos desde Talca</p>
-                  <select
-                    value={comunaSeleccionada}
-                    onChange={(e) => setComunaSeleccionada(e.target.value)}
-                    className="w-full p-2 rounded bg-[#1E1E1E] border border-gray-600 text-white text-sm"
-                  >
-                    {comunasDestino.map((comuna) => (
-                      <option key={comuna.codigo} value={comuna.codigo}>
-                        {comuna.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* 🚚 Selector de empresa de envío (solo logos, sin precios) */}
-                <div className="border-t border-[#F59E0B]/30 my-4 pt-4">
-                  <p className="text-sm font-medium mb-2 text-[#F59E0B]">Empresa de envío:</p>
-                  <div className="flex gap-4">
-                    {opcionesEnvio.map((opcion) => (
-                      <button
-                        key={opcion.id}
-                        onClick={() => setMetodoEnvio(opcion.id)}
-                        className={`flex-1 p-2 rounded-lg border-2 transition-all ${
-                          metodoEnvio === opcion.id
-                            ? 'border-[#EC4899] bg-[#EC4899]/10'
-                            : 'border-gray-600 hover:border-gray-400'
-                        }`}
-                      >
-                        <Image
-                          src={opcion.logo}
-                          alt={opcion.nombre}
-                          width={80}
-                          height={40}
-                          className="mx-auto object-contain"
-                          style={{ maxHeight: '40px' }}
-                        />
-                        <p className="text-xs text-center mt-1">{opcion.nombre}</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 💡 Mensaje de envío por pagar */}
                 <div className="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-lg">
                   <p className="text-xs text-yellow-400 text-center">
                     💡 El costo de envío se pagará al momento de la entrega.

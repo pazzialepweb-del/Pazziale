@@ -1,16 +1,13 @@
+// app/api/create-preference/route.ts
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { NextResponse } from 'next/server';
 
-// 🔥 El token se lee desde las variables de entorno (.env.local)
 const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
-
 if (!accessToken) {
   console.warn('⚠️ MERCADOPAGO_ACCESS_TOKEN no está configurado en las variables de entorno.');
 }
 
-const client = new MercadoPagoConfig({
-  accessToken: accessToken || '',
-});
+const client = new MercadoPagoConfig({ accessToken: accessToken || '' });
 
 export async function POST(request: Request) {
   try {
@@ -22,9 +19,9 @@ export async function POST(request: Request) {
     }
 
     const origin = new URL(request.url).origin;
+    const externalRef = `pedido_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
     const preference = new Preference(client);
-
     const preferenceData = {
       items: items.map((item: any) => ({
         id: item.id,
@@ -45,27 +42,27 @@ export async function POST(request: Request) {
       },
       auto_return: 'approved',
       notification_url: `${origin}/api/webhook-mercadopago`,
-      external_reference: `pedido_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,
+      external_reference: externalRef,
     };
 
     const result = await preference.create({ body: preferenceData });
 
+    // ✅ Devuelve también el external_reference
     return NextResponse.json({
       id: result.id,
       init_point: result.init_point,
       sandbox_init_point: result.sandbox_init_point,
+      external_reference: externalRef,
     });
 
   } catch (error: any) {
     console.error('💥 Error creando preferencia de pago:', error);
-    
     if (error.message?.includes('Invalid access token')) {
       return NextResponse.json(
         { error: 'Token de Mercado Pago inválido. Asegúrate de configurar las claves en .env.local' },
         { status: 401 }
       );
     }
-
     return NextResponse.json(
       { error: error.message || 'Error interno al crear la preferencia' },
       { status: 500 }
