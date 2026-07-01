@@ -5,14 +5,14 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { 
-  Mail, 
-  Phone, 
-  ArrowRight, 
-  Sparkles, 
-  Diamond, 
-  PenTool, 
-  Hammer, 
+import {
+  Mail,
+  Phone,
+  ArrowRight,
+  Sparkles,
+  Diamond,
+  PenTool,
+  Hammer,
   Heart,
   Truck,
   Star
@@ -53,21 +53,7 @@ export default function HomeClient() {
 
   return (
     <div className="min-h-screen bg-[#1E1E1E] text-white font-sans selection:bg-[#EC4899] selection:text-white overflow-x-hidden">
-      
       <Navbar />
-
-      {/* FRANJA DE OFERTAS */}
-      <div className="w-full bg-[#EC4899] py-2 overflow-hidden border-b border-[#F59E0B]/20 relative mt-24 z-10">
-        <div className="flex whitespace-nowrap animate-marquee">
-          {[...Array(5)].map((_, i) => (
-            <span key={i} className="mx-4 text-white font-medium flex items-center gap-2">
-              <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
-              🎉 ¡Por el lanzamiento de la web tenemos ofertas! 🎉
-              <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
-            </span>
-          ))}
-        </div>
-      </div>
 
       {/* HERO SECTION */}
       <section className="relative pt-32 pb-16 px-6 overflow-hidden" aria-label="Bienvenida a Pazziale">
@@ -93,14 +79,14 @@ export default function HomeClient() {
               Orfebrería contemporánea que fusiona la tradición artesanal con el diseño moderno. Cada pieza es única, creada en nuestro taller con pasión y detalles minuciosos.
             </p>
             <div className="flex flex-wrap gap-4 animate-fade-in-up animation-delay-600">
-              <button 
+              <button
                 onClick={() => router.push('/tienda')}
                 className="px-8 py-3 bg-[#EC4899] text-white rounded-full font-medium hover:bg-[#F59E0B] transition-all shadow-lg shadow-[#EC4899]/30 hover:shadow-[#F59E0B]/50 transform hover:-translate-y-1"
                 aria-label="Ver colección de joyería"
               >
                 Ver Colección
               </button>
-              <button 
+              <button
                 onClick={() => router.push('/taller')}
                 className="px-8 py-3 border border-[#F59E0B]/50 rounded-full hover:border-[#EC4899] hover:text-[#EC4899] transition-all flex items-center gap-2 hover:bg-white/5"
                 aria-label="Conoce mi taller de orfebrería"
@@ -130,22 +116,22 @@ export default function HomeClient() {
                 />
               </div>
             ))}
-            
-            <button 
-              onClick={prevSlide} 
+
+            <button
+              onClick={prevSlide}
               className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-[#1E1E1E]/80 backdrop-blur-sm border border-[#F59E0B]/30 rounded-full flex items-center justify-center hover:bg-[#EC4899] hover:text-white transition-all z-10 text-white group-hover:opacity-100 opacity-0"
               aria-label="Diapositiva anterior"
             >
               <span className="text-xl" aria-hidden="true">◀</span>
             </button>
-            <button 
-              onClick={nextSlide} 
+            <button
+              onClick={nextSlide}
               className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-[#1E1E1E]/80 backdrop-blur-sm border border-[#F59E0B]/30 rounded-full flex items-center justify-center hover:bg-[#EC4899] hover:text-white transition-all z-10 text-white group-hover:opacity-100 opacity-0"
               aria-label="Siguiente diapositiva"
             >
               <span className="text-xl" aria-hidden="true">▶</span>
             </button>
-            
+
             <div className="absolute bottom-6 w-full flex justify-center gap-2 z-10">
               {images.map((_, idx) => (
                 <button
@@ -168,7 +154,7 @@ export default function HomeClient() {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-serif mb-6">El Arte de la <span className="text-[#EC4899]">Metalistería</span></h2>
             <p className="text-gray-400 max-w-2xl mx-auto leading-relaxed font-light">
-              En Pazziale, no solo fabricamos joyas. Transformamos metales preciosos en narrativas visuales. 
+              En Pazziale, no solo fabricamos joyas. Transformamos metales preciosos en narrativas visuales.
               Desde la fundición hasta el pulido final, cada etapa respeta la esencia del material para crear piezas que perduran en el tiempo.
             </p>
           </div>
@@ -198,25 +184,25 @@ export default function HomeClient() {
             <h2 className="text-3xl md:text-5xl font-serif mb-4 text-white">Explora Nuestras <span className="text-[#EC4899]">Categorías</span></h2>
             <div className="w-20 h-1 bg-[#EC4899] mx-auto"></div>
           </div>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {categories.map((categoria) => (
-              <Link 
+              <Link
                 key={categoria.name}
-                href={categoria.href} 
+                href={categoria.href}
                 className="group relative overflow-hidden rounded-2xl h-64 lg:h-80 bg-[#2D2D2D] border border-[#F59E0B]/30 hover:border-[#EC4899] transition-all duration-300"
                 aria-label={`Ver categoría ${categoria.name}`}
               >
                 <div className="absolute inset-0">
-                  <Image 
-                    src={categoria.image} 
-                    alt={`Categoría ${categoria.name} - Pazziale`} 
+                  <Image
+                    src={categoria.image}
+                    alt={`Categoría ${categoria.name} - Pazziale`}
                     fill
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                   />
                 </div>
-                
+
                 <div className="absolute inset-0 flex flex-col items-center justify-end pb-8 px-4 text-center">
                   <span className="text-3xl font-serif mb-2 text-white drop-shadow-lg group-hover:text-[#F59E0B] transition-colors">
                     {categoria.name}
@@ -244,11 +230,11 @@ export default function HomeClient() {
           </h3>
           <div className="space-y-4 text-gray-400 text-lg md:text-xl font-light leading-relaxed">
             <p>
-              Aquí, el fuego, la plata y el cobre se funden para dar vida a piezas únicas que cuentan historias. 
+              Aquí, el fuego, la plata y el cobre se funden para dar vida a piezas únicas que cuentan historias.
               No creamos accesorios; <span className="text-white font-medium">esculpimos declaraciones de identidad</span> con metales nobles y detalles que celebran lo auténtico.
             </p>
             <p>
-              Cada joya es un manifiesto de <span className="text-[#EC4899]">diseño sutil</span>, elegancia atemporal y fuerza natural. 
+              Cada joya es un manifiesto de <span className="text-[#EC4899]">diseño sutil</span>, elegancia atemporal y fuerza natural.
               Pasa, descubre la pieza que fue pensada para ti y lleva contigo una obra de arte hecha a mano.
             </p>
           </div>
